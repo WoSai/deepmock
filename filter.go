@@ -4,50 +4,58 @@ import (
 	"bytes"
 	"regexp"
 	"strings"
-	"sync"
 
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
 )
 
 type (
+	// FilterMode 筛选模式
 	FilterMode = string
 
+	// headerFilter 请求头筛选器，如果为空，默认通过
 	headerFilter struct {
-		params   HeaderFilterParameters
+		params   ResourceHeaderFilterParameters
 		mode     FilterMode
 		regulars map[string]*regexp.Regexp
-		mu       sync.RWMutex
 	}
 
+	// bodyFilter 请求body部分筛选器，如果为空，默认通过
 	bodyFilter struct {
-		params  BodyFilterParameters
+		params  ResourceBodyFilterParameters
 		mode    FilterMode
 		regular *regexp.Regexp
 		keyword []byte
-		mu      sync.RWMutex
 	}
 
+	// queryFilter 请求query string筛选器，如果为空，默认通过
 	queryFilter struct {
-		params        QueryFilterParameters
+		params        ResourceQueryFilterParameters
 		mode          FilterMode
 		regulars      map[string]*regexp.Regexp
 		escapedValues map[string]string
-		mu            sync.RWMutex
+	}
+
+	// requestFilter http请求筛选器
+	requestFilter struct {
+		header *headerFilter
+		query  *queryFilter
+		body   *bodyFilter
 	}
 )
 
 const (
+	// FilterModeAlwaysTrue 总是通过
 	FilterModeAlwaysTrue FilterMode = "always_true"
-	FilterModeExact      FilterMode = "exact"
-	FilterModeKeyword    FilterMode = "keyword"
-	FilterModeRegular    FilterMode = "regular"
+	// FilterModeExact key/value精确模式
+	FilterModeExact FilterMode = "exact"
+	// FilterModeKeyword 关键字模板，即确保contains(a, b)结果为true
+	FilterModeKeyword FilterMode = "keyword"
+	// FilterModeRegular 正则表达式模式
+	FilterModeRegular FilterMode = "regular"
 )
 
-func (hf *headerFilter) withParameters(p HeaderFilterParameters) error {
-	hf.mu.Lock()
-	defer hf.mu.Unlock()
-
+func (hf *headerFilter) withParameters(p ResourceHeaderFilterParameters) error {
 	hf.params = p
 	if hf.params != nil {
 		hf.mode = hf.params["mode"]
@@ -66,6 +74,7 @@ func (hf *headerFilter) withParameters(p HeaderFilterParameters) error {
 		for k, v := range hf.params {
 			hf.regulars[k], err = regexp.Compile(v)
 			if err != nil {
+				Logger.Error("failed to compile regular expression", zap.String("expression", v), zap.Error(err))
 				return err
 			}
 		}
@@ -75,9 +84,6 @@ func (hf *headerFilter) withParameters(p HeaderFilterParameters) error {
 }
 
 func (hf *headerFilter) filter(h *fasthttp.RequestHeader) bool {
-	hf.mu.RLock()
-	defer hf.mu.RUnlock()
-
 	switch hf.mode {
 	case FilterModeAlwaysTrue:
 		return true
@@ -125,10 +131,7 @@ func (hf *headerFilter) filterByRegular(h *fasthttp.RequestHeader) bool {
 	return true
 }
 
-func (bf *bodyFilter) withParameters(params BodyFilterParameters) error {
-	bf.mu.Lock()
-	defer bf.mu.Unlock()
-
+func (bf *bodyFilter) withParameters(params ResourceBodyFilterParameters) error {
 	bf.params = params
 	if bf.params != nil {
 		bf.mode = bf.params["mode"]
@@ -145,6 +148,7 @@ func (bf *bodyFilter) withParameters(params BodyFilterParameters) error {
 		var err error
 		bf.regular, err = regexp.Compile(bf.params["regular"])
 		if err != nil {
+			Logger.Error("failed to compile regular expression", zap.String("expression", bf.params["regular"]), zap.Error(err))
 			return err
 		}
 		delete(bf.params, "regular")
@@ -157,9 +161,6 @@ func (bf *bodyFilter) withParameters(params BodyFilterParameters) error {
 }
 
 func (bf *bodyFilter) filter(body []byte) bool {
-	bf.mu.RLock()
-	defer bf.mu.RUnlock()
-
 	switch bf.mode {
 	case FilterModeAlwaysTrue:
 		return true
@@ -176,10 +177,7 @@ func (bf *bodyFilter) filter(body []byte) bool {
 	}
 }
 
-func (qf *queryFilter) withParameters(query QueryFilterParameters) error {
-	qf.mu.Lock()
-	defer qf.mu.Unlock()
-
+func (qf *queryFilter) withParameters(query ResourceQueryFilterParameters) error {
 	qf.params = query
 	if qf.params != nil {
 		qf.mode = qf.params["mode"]
@@ -197,6 +195,7 @@ func (qf *queryFilter) withParameters(query QueryFilterParameters) error {
 		for k, v := range qf.params {
 			qf.regulars[k], err = regexp.Compile(v)
 			if err != nil {
+				Logger.Error("failed to compile regular expression", zap.String("expression", v), zap.Error(err))
 				return err
 			}
 		}
@@ -205,9 +204,6 @@ func (qf *queryFilter) withParameters(query QueryFilterParameters) error {
 }
 
 func (qf *queryFilter) filter(query *fasthttp.Args) bool {
-	qf.mu.RLock()
-	defer qf.mu.RUnlock()
-
 	switch qf.mode {
 	case FilterModeAlwaysTrue:
 		return true
@@ -250,6 +246,41 @@ func (qf *queryFilter) filterByRegular(query *fasthttp.Args) bool {
 		if !qf.regulars[k].Match(query.Peek(k)) {
 			return false
 		}
+	}
+	return true
+}
+
+func newRequestFilter(filter ResourceFilter) (*requestFilter, error) {
+	var err error
+	h := new(headerFilter)
+	if err = h.withParameters(filter.Header); err != nil {
+		return nil, err
+	}
+
+	q := new(queryFilter)
+	if err = q.withParameters(filter.Query); err != nil {
+		return nil, err
+	}
+
+	b := new(bodyFilter)
+	if err = b.withParameters(filter.Body); err != nil {
+		return nil, err
+	}
+
+	return &requestFilter{header: h, query: q, body: b}, nil
+}
+
+func (rf *requestFilter) filter(req *fasthttp.Request) bool {
+	if !rf.header.filter(&req.Header) {
+		return false
+	}
+
+	if !rf.query.filter(req.URI().QueryArgs()) {
+		return false
+	}
+
+	if rf.body.filter(req.Body()) {
+		return false
 	}
 	return true
 }
