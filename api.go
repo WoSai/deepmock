@@ -169,7 +169,25 @@ func render(re *ruleExecutor, rt *responseTemplate, ctx *fasthttp.RequestCtx) {
 }
 
 func HandleCreateRule(ctx *fasthttp.RequestCtx, next func(error)) {
+	rule := new(ResourceRule)
+	if err := bindBody(ctx, rule); err != nil {
+		return
+	}
 
+	re, err := defaultRuleManager.createRule(rule)
+	res := new(CommonResource)
+	if err != nil {
+		res.Code = fasthttp.StatusBadRequest
+		res.ErrorMessage = err.Error()
+	} else {
+		res.Code = 200
+		res.Data = rule
+		rule.ID = re.id()
+	}
+
+	data, _ := json.Marshal(res)
+	ctx.Response.Header.SetContentType("application/json")
+	ctx.Response.SetBody(data)
 }
 
 func HandleGetRule(ctx *fasthttp.RequestCtx, next func(error)) {
@@ -198,6 +216,7 @@ func HandleImportRules(ctx *fasthttp.RequestCtx, next func(error)) {
 
 func bindBody(ctx *fasthttp.RequestCtx, v interface{}) error {
 	if err := json.Unmarshal(ctx.Request.Body(), v); err != nil {
+		Logger.Error("failed to parse request body", zap.ByteString("path", ctx.Request.URI().Path()), zap.ByteString("method", ctx.Request.Header.Method()), zap.Error(err))
 		ctx.Response.Header.SetContentType("application/json")
 		ctx.Response.SetStatusCode(fasthttp.StatusOK)
 

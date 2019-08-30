@@ -3,6 +3,7 @@ package deepmock
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"html/template"
 	"math/rand"
 	"regexp"
@@ -186,6 +187,7 @@ func newRuleExecutor(res *ResourceRule) (*ruleExecutor, error) {
 	if err != nil {
 		return nil, err
 	}
+	re.requestMatcher = rm
 	rm.raw = res.Request
 
 	// init context
@@ -302,6 +304,23 @@ func (rm *ruleManager) findExecutor(path, method []byte) (*ruleExecutor, bool) {
 	}
 
 	return nil, false
+}
+
+func (rm *ruleManager) createRule(rule *ResourceRule) (*ruleExecutor, error) {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+
+	re, err := newRuleExecutor(rule)
+	if err != nil {
+		return nil, err
+	}
+	_, ok := rm.executors[re.id()]
+	if ok {
+		Logger.Error("failed to create duplicated rule", zap.String("path", rule.Request.Path), zap.String("method", rule.Request.Method))
+		return nil, errors.New("found duplicated rule")
+	}
+	rm.executors[re.id()] = re
+	return re, nil
 }
 
 func init() {
