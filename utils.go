@@ -2,9 +2,11 @@ package deepmock
 
 import (
 	"crypto/md5"
-	"fmt"
+	"encoding/hex"
 	"hash"
+	"math/rand"
 	"sync"
+	"time"
 )
 
 type (
@@ -12,6 +14,13 @@ type (
 		salt string
 		pool sync.Pool
 	}
+)
+
+const (
+	letterBytes   = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	letterIdxBits = 6                    // 6 bits to represent a letter index
+	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+	letterIdxMax  = 63 / letterIdxBits
 )
 
 var (
@@ -42,9 +51,26 @@ func genID(path, method []byte) string {
 	h.Write(method)
 	h.Write(path)
 	h.Write(salt)
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func genRandomString(n int) string {
+	b := make([]byte, n)
+	for i, cache, remain := n-1, rand.Int63(), letterIdxMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = rand.Int63(), letterIdxMax
+		}
+		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+			b[i] = letterBytes[idx]
+			i--
+		}
+		cache >>= letterIdxBits
+		remain--
+	}
+	return string(b)
 }
 
 func init() {
 	defaultHashPoll = newHashPool()
+	rand.Seed(time.Now().UnixNano())
 }

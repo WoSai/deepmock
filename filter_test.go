@@ -84,3 +84,19 @@ func TestQueryFilter_Filter(t *testing.T) {
 	query.Set("age", "unknown")
 	assertion.False(qf.filter(query))
 }
+
+func TestRequestFilter_Wrap(t *testing.T) {
+	f := &ResourceFilter{
+		Header: ResourceHeaderFilterParameters{"mode": FilterModeAlwaysTrue},
+		Query:  ResourceQueryFilterParameters{"mode": FilterModeExact, "version": "2"},
+		Body:   ResourceBodyFilterParameters{"mode": FilterModeKeyword, "keyword": "createStore"},
+	}
+
+	rf, err := newRequestFilter(f)
+	assert.Nil(t, err)
+	assert.EqualValues(t, &ResourceFilter{
+		Header: ResourceHeaderFilterParameters{"mode": FilterModeAlwaysTrue},
+		Query:  ResourceQueryFilterParameters{"mode": FilterModeExact, "version": "2"},
+		Body:   ResourceBodyFilterParameters{"mode": FilterModeKeyword, "keyword": "createStore"},
+	}, rf.wrap())
+}

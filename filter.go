@@ -30,10 +30,9 @@ type (
 
 	// queryFilter 请求query string筛选器，如果为空，默认通过
 	queryFilter struct {
-		params        ResourceQueryFilterParameters
-		mode          FilterMode
-		regulars      map[string]*regexp.Regexp
-		escapedValues map[string]string
+		params   ResourceQueryFilterParameters
+		mode     FilterMode
+		regulars map[string]*regexp.Regexp
 	}
 
 	// requestFilter http请求筛选器
@@ -81,6 +80,18 @@ func (hf *headerFilter) withParameters(p ResourceHeaderFilterParameters) error {
 	}
 
 	return nil
+}
+
+func (hf *headerFilter) wrap() ResourceHeaderFilterParameters {
+	if hf.params == nil {
+		return nil
+	}
+	ret := make(ResourceHeaderFilterParameters)
+	for k, v := range hf.params {
+		ret[k] = v
+	}
+	ret["mode"] = hf.mode
+	return ret
 }
 
 func (hf *headerFilter) filter(h *fasthttp.RequestHeader) bool {
@@ -160,6 +171,27 @@ func (bf *bodyFilter) withParameters(params ResourceBodyFilterParameters) error 
 	return nil
 }
 
+func (bf *bodyFilter) wrap() ResourceBodyFilterParameters {
+	if bf.params == nil {
+		return nil
+	}
+	ret := make(ResourceBodyFilterParameters)
+	for k, v := range bf.params {
+		ret[k] = v
+	}
+	switch bf.mode {
+	case FilterModeRegular:
+		ret["regular"] = bf.regular.String()
+		fallthrough
+	case FilterModeKeyword:
+		ret["keyword"] = string(bf.keyword)
+		fallthrough
+	default:
+		ret["mode"] = bf.mode
+	}
+	return ret
+}
+
 func (bf *bodyFilter) filter(body []byte) bool {
 	switch bf.mode {
 	case FilterModeAlwaysTrue:
@@ -201,6 +233,18 @@ func (qf *queryFilter) withParameters(query ResourceQueryFilterParameters) error
 		}
 	}
 	return nil
+}
+
+func (qf *queryFilter) wrap() ResourceQueryFilterParameters {
+	if qf.params == nil {
+		return nil
+	}
+	ret := make(ResourceQueryFilterParameters)
+	for k, v := range qf.params {
+		ret[k] = v
+	}
+	ret["mode"] = qf.mode
+	return ret
 }
 
 func (qf *queryFilter) filter(query *fasthttp.Args) bool {
@@ -250,24 +294,32 @@ func (qf *queryFilter) filterByRegular(query *fasthttp.Args) bool {
 	return true
 }
 
-func newRequestFilter(filter ResourceFilter) (*requestFilter, error) {
+func newRequestFilter(f *ResourceFilter) (*requestFilter, error) {
 	var err error
 	h := new(headerFilter)
-	if err = h.withParameters(filter.Header); err != nil {
+	if err = h.withParameters(f.Header); err != nil {
 		return nil, err
 	}
 
 	q := new(queryFilter)
-	if err = q.withParameters(filter.Query); err != nil {
+	if err = q.withParameters(f.Query); err != nil {
 		return nil, err
 	}
 
 	b := new(bodyFilter)
-	if err = b.withParameters(filter.Body); err != nil {
+	if err = b.withParameters(f.Body); err != nil {
 		return nil, err
 	}
 
 	return &requestFilter{header: h, query: q, body: b}, nil
+}
+
+func (rf *requestFilter) wrap() *ResourceFilter {
+	f := new(ResourceFilter)
+	f.Header = rf.header.wrap()
+	f.Query = rf.query.wrap()
+	f.Body = rf.body.wrap()
+	return f
 }
 
 func (rf *requestFilter) filter(req *fasthttp.Request) bool {

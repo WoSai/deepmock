@@ -19,14 +19,14 @@ type (
 	}
 
 	ResourceRule struct {
-		ID        string                  `json:"id,omitempty"`
-		Request   *ResourceRequestMatcher `json:"request"`
-		Context   ResourceContext         `json:"context,omitempty"`
-		Weight    ResourceWeight          `json:"weight,omitempty"`
-		Responses ResourceMockResponseSet `json:"responses"`
+		ID        string                        `json:"id,omitempty"`
+		Request   *ResourceRequestMatcher       `json:"request"`
+		Context   ResourceContext               `json:"context,omitempty"`
+		Weight    ResourceWeight                `json:"weight,omitempty"`
+		Responses ResourceResponseRegulationSet `json:"responses"`
 	}
 
-	ResourceMockResponse struct {
+	ResourceResponseRegulation struct {
 		IsDefault bool                      `json:"is_default,omitempty"`
 		Filter    *ResourceFilter           `json:"filter,omitempty"`
 		Response  *ResourceResponseTemplate `json:"response"`
@@ -37,9 +37,9 @@ type (
 	ResourceWeight map[string]ResourceWeightingFactor
 
 	ResourceFilter struct {
-		Header ResourceHeaderFilterParameters
-		Query  ResourceQueryFilterParameters
-		Body   ResourceBodyFilterParameters
+		Header ResourceHeaderFilterParameters `json:"header,omitempty"`
+		Query  ResourceQueryFilterParameters  `json:"query,omitempty"`
+		Body   ResourceBodyFilterParameters   `json:"body,omitempty"`
 	}
 
 	ResourceResponseTemplate struct {
@@ -60,7 +60,7 @@ type (
 
 	ResourceWeightingFactor map[string]uint
 
-	ResourceMockResponseSet []*ResourceMockResponse
+	ResourceResponseRegulationSet []*ResourceResponseRegulation
 )
 
 func (rrm *ResourceRequestMatcher) check() error {
@@ -76,14 +76,14 @@ func (rrm *ResourceRequestMatcher) check() error {
 	return nil
 }
 
-func (rmr *ResourceMockResponse) check() error {
+func (rmr *ResourceResponseRegulation) check() error {
 	if !rmr.IsDefault && rmr.Filter == nil {
 		return errors.New("missing filter rule, or set as default response")
 	}
 	return nil
 }
 
-func (mrs ResourceMockResponseSet) check() error {
+func (mrs ResourceResponseRegulationSet) check() error {
 	var d int
 	if mrs == nil {
 		return errors.New("missing mock response")
