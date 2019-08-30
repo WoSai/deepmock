@@ -240,6 +240,27 @@ func (rm *ruleManager) createRule(rule *types.ResourceRule) (*ruleExecutor, erro
 	return re, nil
 }
 
+func (rm *ruleManager) batchCreateRules(rules ...*types.ResourceRule) error {
+	for _, rule := range rules {
+		if _, err := rm.createRule(rule); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (rm *ruleManager) purge() {
+	rm.mu.Lock()
+
+	for k := range rm.executors {
+		delete(rm.executors, k)
+	}
+
+	rm.cache.Purge()
+
+	rm.mu.Unlock()
+}
+
 func init() {
 	defaultRuleManager = newRuleManager()
 }
