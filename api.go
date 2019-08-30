@@ -3,6 +3,8 @@ package deepmock
 import (
 	"errors"
 
+	"go.uber.org/zap"
+
 	"github.com/valyala/fasthttp"
 )
 
@@ -104,7 +106,66 @@ func (mrs ResourceResponseRegulationSet) check() error {
 }
 
 func HandleMockedAPI(ctx *fasthttp.RequestCtx, next func(error)) {
+	re, founded := defaultRuleManager.findExecutor(ctx.Request.URI().Path(), ctx.Request.Header.Method())
+	if !founded {
+		res := new(CommonResource)
+		res.Code = 400
+		res.ErrorMessage = "no rule match your request"
+		data, _ := json.Marshal(res)
+		ctx.Response.Header.SetContentType("application/json")
+		ctx.Response.SetBody(data)
+		return
+	}
 
+	var defaultRegulation *responseRegulation
+	for _, regulation := range re.responseRegulations {
+		if regulation.isDefault {
+			defaultRegulation = regulation
+		}
+		if !regulation.filter(&ctx.Request) {
+			continue
+		}
+
+		render(re, regulation.responseTemplate, ctx)
+		return
+	}
+
+	// 没有任何模板匹配到
+	if defaultRegulation == nil {
+		res := new(CommonResource)
+		res.Code = 400
+		res.ErrorMessage = "missing matched response regulation"
+		data, _ := json.Marshal(res)
+		ctx.Response.Header.SetContentType("application/json")
+		ctx.Response.SetBody(data)
+		return
+	}
+
+	render(re, defaultRegulation.responseTemplate, ctx)
+}
+
+func render(re *ruleExecutor, rt *responseTemplate, ctx *fasthttp.RequestCtx) {
+	rt.header.CopyTo(&ctx.Response.Header)
+	if rt.isTemplate {
+		c := re.context
+		w := re.weightPicker.dice()
+		q := extractQueryAsParams(&ctx.Request)
+		f, j := extractBodyAsParams(&ctx.Request)
+
+		rc := renderContext{Context: c, Weight: w, Query: q, Form: f, Json: j}
+		if err := rt.render(rc, &ctx.Response); err != nil {
+			Logger.Error("failed to render response template", zap.Error(err))
+			res := new(CommonResource)
+			res.Code = fasthttp.StatusBadRequest
+			res.ErrorMessage = err.Error()
+			data, _ := json.Marshal(res)
+			ctx.Response.SetBody(data)
+			return
+		}
+		return
+	}
+
+	ctx.Response.SetBody(rt.body)
 }
 
 func HandleCreateRule(ctx *fasthttp.RequestCtx, next func(error)) {

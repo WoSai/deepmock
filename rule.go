@@ -4,25 +4,27 @@ import (
 	"bytes"
 	"encoding/base64"
 	"html/template"
+	"math/rand"
 	"regexp"
 	"sync"
 
-	"github.com/hashicorp/golang-lru/simplelru"
+	lru "github.com/hashicorp/golang-lru"
+
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
 )
 
 type (
 	ruleManager struct {
-		executors     map[string]*ruleExecutor
-		executorCache simplelru.LRUCache
-		mu            sync.RWMutex
+		executors map[string]*ruleExecutor
+		cache     *lru.ARCCache
+		mu        sync.RWMutex
 	}
 
 	ruleExecutor struct {
 		requestMatcher      *requestMatcher
 		context             ResourceContext
-		weightPickers       map[string]*weightingPicker
+		weightPicker        weightingPicker
 		responseRegulations []*responseRegulation
 	}
 
@@ -52,13 +54,17 @@ type (
 		raw          *ResourceResponseTemplate
 	}
 
-	weightingPicker struct {
+	weightingDice struct {
 		total   uint
 		storage []string
 		raw     ResourceWeightingFactor
 	}
 
-	weightingFactorHub map[string]*weightingPicker
+	weightingPicker map[string]*weightingDice
+)
+
+var (
+	defaultRuleManager *ruleManager
 )
 
 func newRequestMatcher(res *ResourceRequestMatcher) (*requestMatcher, error) {
@@ -132,6 +138,13 @@ func newResponseTemplate(rrt *ResourceResponseTemplate) (*responseTemplate, erro
 	return rt, nil
 }
 
+func (rt *responseTemplate) render(rc renderContext, res *fasthttp.Response) error {
+	if !rt.isTemplate {
+		return nil
+	}
+	return rt.htmlTemplate.Execute(res.BodyWriter(), rc)
+}
+
 func newResponseRegulation(res *ResourceResponseRegulation) (*responseRegulation, error) {
 	if err := res.check(); err != nil {
 		return nil, err
@@ -179,9 +192,9 @@ func newRuleExecutor(res *ResourceRule) (*ruleExecutor, error) {
 	re.context = res.Context
 
 	// init weight
-	re.weightPickers = map[string]*weightingPicker{}
+	re.weightPicker = map[string]*weightingDice{}
 	for k, v := range res.Weight {
-		re.weightPickers[k] = newWeighingPicker(v)
+		re.weightPicker[k] = newWeighingPicker(v)
 	}
 
 	// init responseRegulation
@@ -203,13 +216,17 @@ func (re *ruleExecutor) id() string {
 	return re.requestMatcher.id
 }
 
-func newWeighingPicker(res ResourceWeightingFactor) *weightingPicker {
-	wp := &weightingPicker{raw: res}
+func (re *ruleExecutor) match(path, method []byte) bool {
+	return re.requestMatcher.match(path, method)
+}
+
+func newWeighingPicker(res ResourceWeightingFactor) *weightingDice {
+	wp := &weightingDice{raw: res}
 	wp.preDistribute()
 	return wp
 }
 
-func (wp *weightingPicker) preDistribute() {
+func (wp *weightingDice) preDistribute() {
 	wp.storage = []string{}
 	for k, v := range wp.raw {
 		for i := 0; i < int(v); i++ {
@@ -219,15 +236,19 @@ func (wp *weightingPicker) preDistribute() {
 	}
 }
 
-func newWeightingFactorHub(res ResourceWeight) weightingFactorHub {
-	wfh := make(weightingFactorHub)
+func (wp *weightingDice) dice() string {
+	return wp.storage[rand.Intn(int(wp.total))]
+}
+
+func newWeightingPicker(res ResourceWeight) weightingPicker {
+	wfh := make(weightingPicker)
 	for k, v := range res {
 		wfh[k] = newWeighingPicker(v)
 	}
 	return wfh
 }
 
-func (wfg weightingFactorHub) wrap() ResourceWeight {
+func (wfg weightingPicker) wrap() ResourceWeight {
 	if wfg == nil {
 		return nil
 	}
@@ -237,4 +258,52 @@ func (wfg weightingFactorHub) wrap() ResourceWeight {
 		ret[k] = v.raw
 	}
 	return ret
+}
+
+func (wfg weightingPicker) dice() params {
+	p := make(params)
+	for k, w := range wfg {
+		p[k] = w.dice()
+	}
+	return p
+}
+
+func newRuleManager() *ruleManager {
+	cache, err := lru.NewARC(1000)
+	if err != nil {
+		panic(err)
+	}
+
+	return &ruleManager{
+		executors: make(map[string]*ruleExecutor),
+		cache:     cache,
+	}
+}
+
+func (rm *ruleManager) genCacheID(path, method []byte) string {
+	return string(method) + string(path)
+}
+
+func (rm *ruleManager) findExecutor(path, method []byte) (*ruleExecutor, bool) {
+	rm.mu.RLock()
+	defer rm.mu.RUnlock()
+
+	cacheID := rm.genCacheID(path, method)
+	execID, cached := rm.cache.Get(cacheID)
+	if cached {
+		return rm.executors[execID.(string)], true
+	}
+
+	for id, exec := range rm.executors {
+		if exec.match(path, method) {
+			rm.cache.Add(cacheID, id)
+			return exec, true
+		}
+	}
+
+	return nil, false
+}
+
+func init() {
+	defaultRuleManager = newRuleManager()
 }

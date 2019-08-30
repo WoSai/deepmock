@@ -65,7 +65,7 @@ func TestWeightingFactorHub_Wrap(t *testing.T) {
 	res := ResourceWeight{
 		"code":     ResourceWeightingFactor{"CREATED": 1, "CLOSED": 2},
 		"err_code": ResourceWeightingFactor{"INVALID_NAME": 0, "INVALID_BANK_ACCOUNT": 2}}
-	wfh := newWeightingFactorHub(res)
+	wfh := newWeightingPicker(res)
 	wfh.wrap()
 
 	assert.EqualValues(t, res, wfh.wrap())
