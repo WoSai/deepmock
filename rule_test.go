@@ -3,32 +3,34 @@ package deepmock
 import (
 	"testing"
 
+	"github.com/qastub/deepmock/types"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRequestMatch_Match(t *testing.T) {
-	rm, err := newRequestMatcher(&ResourceRequestMatcher{Path: "/", Method: "Get"})
+	rm, err := newRequestMatcher(&types.ResourceRequestMatcher{Path: "/", Method: "Get"})
 	assert.Nil(t, err)
 	assert.True(t, rm.match([]byte("/"), []byte("GET")))
 
-	rm, err = newRequestMatcher(&ResourceRequestMatcher{Method: "GET", Path: "/api/v1/create"})
+	rm, err = newRequestMatcher(&types.ResourceRequestMatcher{Method: "GET", Path: "/api/v1/create"})
 	assert.Nil(t, err)
 	assert.False(t, rm.match([]byte("/api/v1/create"), []byte("POST")))
 
-	rm, err = newRequestMatcher(&ResourceRequestMatcher{Method: "GET", Path: "/api/v1/create"})
+	rm, err = newRequestMatcher(&types.ResourceRequestMatcher{Method: "GET", Path: "/api/v1/create"})
 	assert.Nil(t, err)
 	assert.False(t, rm.match([]byte("/api/v1/update"), []byte("GET")))
 
-	rm, err = newRequestMatcher(&ResourceRequestMatcher{Method: "GET", Path: "/api/v[0-9]+/create"})
+	rm, err = newRequestMatcher(&types.ResourceRequestMatcher{Method: "GET", Path: "/api/v[0-9]+/create"})
 	assert.Nil(t, err)
 	assert.True(t, rm.match([]byte("/api/v10/create"), []byte("GET")))
 	assert.False(t, rm.match([]byte("/api/va/create"), []byte("GET")))
 }
 
 func TestNewResponseTemplate(t *testing.T) {
-	res := &ResourceResponseTemplate{
+	res := &types.ResourceResponseTemplate{
 		IsTemplate:     true,
-		Header:         ResourceHeaderTemplate{"Content-Type": "application/json", "Authorization": "123123"},
+		Header:         types.ResourceHeaderTemplate{"Content-Type": "application/json", "Authorization": "123123"},
 		StatusCode:     500,
 		Body:           "hello world",
 		B64EncodedBody: "aGVsbG8gZm9vYmFyIQ==",
@@ -46,12 +48,12 @@ func TestNewResponseTemplate(t *testing.T) {
 }
 
 func TestResponseRegulation_Wrap(t *testing.T) {
-	res := &ResourceResponseRegulation{
+	res := &types.ResourceResponseRegulation{
 		IsDefault: true,
-		Filter: &ResourceFilter{
-			Body: ResourceBodyFilterParameters{"mode": "keyword", "keyword": "createStore"},
+		Filter: &types.ResourceFilter{
+			Body: types.ResourceBodyFilterParameters{"mode": "keyword", "keyword": "createStore"},
 		},
-		Response: &ResourceResponseTemplate{Body: "hello pingpong", Header: ResourceHeaderTemplate{"Content-Type": "text/plaintext"}},
+		Response: &types.ResourceResponseTemplate{Body: "hello pingpong", Header: types.ResourceHeaderTemplate{"Content-Type": "text/plaintext"}},
 	}
 	d1, _ := json.Marshal(res)
 
@@ -62,9 +64,9 @@ func TestResponseRegulation_Wrap(t *testing.T) {
 }
 
 func TestWeightingFactorHub_Wrap(t *testing.T) {
-	res := ResourceWeight{
-		"code":     ResourceWeightingFactor{"CREATED": 1, "CLOSED": 2},
-		"err_code": ResourceWeightingFactor{"INVALID_NAME": 0, "INVALID_BANK_ACCOUNT": 2}}
+	res := types.ResourceWeight{
+		"code":     types.ResourceWeightingFactor{"CREATED": 1, "CLOSED": 2},
+		"err_code": types.ResourceWeightingFactor{"INVALID_NAME": 0, "INVALID_BANK_ACCOUNT": 2}}
 	wfh := newWeightingPicker(res)
 	wfh.wrap()
 

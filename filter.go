@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/qastub/deepmock/types"
+
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
 )
@@ -15,14 +17,14 @@ type (
 
 	// headerFilter 请求头筛选器，如果为空，默认通过
 	headerFilter struct {
-		params   ResourceHeaderFilterParameters
+		params   types.ResourceHeaderFilterParameters
 		mode     FilterMode
 		regulars map[string]*regexp.Regexp
 	}
 
 	// bodyFilter 请求body部分筛选器，如果为空，默认通过
 	bodyFilter struct {
-		params  ResourceBodyFilterParameters
+		params  types.ResourceBodyFilterParameters
 		mode    FilterMode
 		regular *regexp.Regexp
 		keyword []byte
@@ -30,7 +32,7 @@ type (
 
 	// queryFilter 请求query string筛选器，如果为空，默认通过
 	queryFilter struct {
-		params   ResourceQueryFilterParameters
+		params   types.ResourceQueryFilterParameters
 		mode     FilterMode
 		regulars map[string]*regexp.Regexp
 	}
@@ -54,7 +56,7 @@ const (
 	FilterModeRegular FilterMode = "regular"
 )
 
-func (hf *headerFilter) withParameters(p ResourceHeaderFilterParameters) error {
+func (hf *headerFilter) withParameters(p types.ResourceHeaderFilterParameters) error {
 	hf.params = p
 	if hf.params != nil {
 		hf.mode = hf.params["mode"]
@@ -82,11 +84,11 @@ func (hf *headerFilter) withParameters(p ResourceHeaderFilterParameters) error {
 	return nil
 }
 
-func (hf *headerFilter) wrap() ResourceHeaderFilterParameters {
+func (hf *headerFilter) wrap() types.ResourceHeaderFilterParameters {
 	if hf.params == nil {
 		return nil
 	}
-	ret := make(ResourceHeaderFilterParameters)
+	ret := make(types.ResourceHeaderFilterParameters)
 	for k, v := range hf.params {
 		ret[k] = v
 	}
@@ -142,7 +144,7 @@ func (hf *headerFilter) filterByRegular(h *fasthttp.RequestHeader) bool {
 	return true
 }
 
-func (bf *bodyFilter) withParameters(params ResourceBodyFilterParameters) error {
+func (bf *bodyFilter) withParameters(params types.ResourceBodyFilterParameters) error {
 	bf.params = params
 	if bf.params != nil {
 		bf.mode = bf.params["mode"]
@@ -171,11 +173,11 @@ func (bf *bodyFilter) withParameters(params ResourceBodyFilterParameters) error 
 	return nil
 }
 
-func (bf *bodyFilter) wrap() ResourceBodyFilterParameters {
+func (bf *bodyFilter) wrap() types.ResourceBodyFilterParameters {
 	if bf.params == nil {
 		return nil
 	}
-	ret := make(ResourceBodyFilterParameters)
+	ret := make(types.ResourceBodyFilterParameters)
 	for k, v := range bf.params {
 		ret[k] = v
 	}
@@ -209,7 +211,7 @@ func (bf *bodyFilter) filter(body []byte) bool {
 	}
 }
 
-func (qf *queryFilter) withParameters(query ResourceQueryFilterParameters) error {
+func (qf *queryFilter) withParameters(query types.ResourceQueryFilterParameters) error {
 	qf.params = query
 	if qf.params != nil {
 		qf.mode = qf.params["mode"]
@@ -235,11 +237,11 @@ func (qf *queryFilter) withParameters(query ResourceQueryFilterParameters) error
 	return nil
 }
 
-func (qf *queryFilter) wrap() ResourceQueryFilterParameters {
+func (qf *queryFilter) wrap() types.ResourceQueryFilterParameters {
 	if qf.params == nil {
 		return nil
 	}
-	ret := make(ResourceQueryFilterParameters)
+	ret := make(types.ResourceQueryFilterParameters)
 	for k, v := range qf.params {
 		ret[k] = v
 	}
@@ -294,7 +296,7 @@ func (qf *queryFilter) filterByRegular(query *fasthttp.Args) bool {
 	return true
 }
 
-func newRequestFilter(f *ResourceFilter) (*requestFilter, error) {
+func newRequestFilter(f *types.ResourceFilter) (*requestFilter, error) {
 	var err error
 	h := new(headerFilter)
 	if err = h.withParameters(f.Header); err != nil {
@@ -314,8 +316,8 @@ func newRequestFilter(f *ResourceFilter) (*requestFilter, error) {
 	return &requestFilter{header: h, query: q, body: b}, nil
 }
 
-func (rf *requestFilter) wrap() *ResourceFilter {
-	f := new(ResourceFilter)
+func (rf *requestFilter) wrap() *types.ResourceFilter {
+	f := new(types.ResourceFilter)
 	f.Header = rf.header.wrap()
 	f.Query = rf.query.wrap()
 	f.Body = rf.body.wrap()

@@ -16,7 +16,7 @@ var (
 
 type (
 	renderContext struct {
-		Context ResourceContext
+		Context ruleContext
 		Weight  params
 		Query   params
 		Form    params
