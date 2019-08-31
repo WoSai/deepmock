@@ -111,6 +111,30 @@ curl -X POST http://127.0.0.1:16600/api/v1/rule \
 }
 ```
 
+DeepMock支持返回二进制报文，只需要对二进制内容进行base64编码后传入即可，如：
+
+```json
+{
+    "request": {
+        "path": "/baidu_logo",
+        "method": "get"
+    },
+    "responses": [
+        {
+            "is_default": true,
+            "response": {
+                "header": {
+                    "Content-Type": "image/png"
+                },
+                "base64encoded_body": "0KGgoAAAANSUhEUgAAAh...g9Qs4AAAAASUVORK5CYII="
+            }
+        }
+    ]
+}
+```
+
+![](https://my-storage.oss-cn-shanghai.aliyuncs.com/picgo/20190831183004.png)
+
 ### 获取规则详情： `GET /api/v1/rule/<rule_id>`
 
 ```bash
