@@ -399,3 +399,147 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
     }
 }
 ```
+
+### Benchmark
+
+#### 静态response - `is_template: false`
+
+```json
+{
+	"request": {
+		"path": "/echo",
+		"method": "get"
+	},
+	"responses": [
+		{
+			"is_default": true,
+			"response": {
+				"body": "hello deepmock"
+			}
+		}
+		]
+}
+```
+
+```bash
+ab -c 100 -n 1000000 -k http://127.0.0.1:16600/echo
+
+Server Software:        DeepMock
+Server Hostname:        127.0.0.1
+Server Port:            16600
+
+Document Path:          /echo
+Document Length:        14 bytes
+
+Concurrency Level:      100
+Time taken for tests:   14.863 seconds
+Complete requests:      1000000
+Failed requests:        0
+Keep-Alive requests:    1000000
+Total transferred:      181000000 bytes
+HTML transferred:       14000000 bytes
+Requests per second:    67280.35 [#/sec] (mean)
+Time per request:       1.486 [ms] (mean)
+Time per request:       0.015 [ms] (mean, across all concurrent requests)
+Transfer rate:          11892.33 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.0      0       2
+Processing:     0    1   1.3      1      10
+Waiting:        0    1   1.3      1      10
+Total:          0    1   1.3      1      10
+
+Percentage of the requests served within a certain time (ms)
+  50%      1
+  66%      2
+  75%      3
+  80%      3
+  90%      3
+  95%      4
+  98%      4
+  99%      5
+ 100%     10 (longest request)
+
+```
+
+### 动态Response - `is_template: true`
+
+创建如下规则:
+
+```json
+{
+	"request": {
+		"path": "/render",
+		"method": "get"
+	},
+	"variable": {
+		"name": "mike"
+	},
+	"weight": {
+		"return_code": {
+			"SUCCESS": 10,
+			"FAILED": 10
+		}	
+	},
+	"responses": [
+		{
+			"is_default": true,
+			"filter": {
+				"query": {
+					"mode": "regular",
+					"age": "[0-9]+"
+				}
+			},
+			"response": {
+				"is_template": true,
+				"body": "{{.Weight.return_code}}: my name is {{.Variable.name}}, i am {{.Query.age}} years old."
+			}
+		}
+		]
+}
+```
+
+```bash
+ab -c 100 -n 1000000 -k http://127.0.0.1:16600/render?age=12
+
+Server Software:        DeepMock
+Server Hostname:        127.0.0.1
+Server Port:            16600
+
+Document Path:          /render?age=12
+Document Length:        44 bytes
+
+Concurrency Level:      100
+Time taken for tests:   26.472 seconds
+Complete requests:      1000000
+Failed requests:        500213
+   (Connect: 0, Receive: 0, Length: 500213, Exceptions: 0)
+Keep-Alive requests:    1000000
+Total transferred:      210499787 bytes
+HTML transferred:       43499787 bytes
+Requests per second:    37776.35 [#/sec] (mean)
+Time per request:       2.647 [ms] (mean)
+Time per request:       0.026 [ms] (mean, across all concurrent requests)
+Transfer rate:          7765.54 [Kbytes/sec] received
+
+Connection Times (ms)
+              min  mean[+/-sd] median   max
+Connect:        0    0   0.0      0       3
+Processing:     0    3   6.8      3     637
+Waiting:        0    3   6.8      3     637
+Total:          0    3   6.8      3     637
+
+Percentage of the requests served within a certain time (ms)
+  50%      3
+  66%      3
+  75%      3
+  80%      4
+  90%      4
+  95%      5
+  98%      6
+  99%      7
+ 100%    637 (longest request)
+
+```
+
