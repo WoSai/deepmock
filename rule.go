@@ -229,6 +229,25 @@ func (rm *ruleManager) findExecutor(path, method []byte) (*ruleExecutor, bool) {
 	return nil, false
 }
 
+func (rm *ruleManager) updateRule(rule *types.ResourceRule) (*ruleExecutor, error) {
+	re, err := newRuleExecutor(rule)
+	if err != nil {
+		return nil, err
+	}
+
+	rm.mu.Lock()
+	_, ok := rm.executors[re.id()]
+	if !ok {
+		rm.mu.Unlock()
+		Logger.Error("the rule to update is not exists", zap.String("path", rule.Request.Path), zap.String("method", rule.Request.Method))
+		return nil, errors.New("the rule to update is not exists")
+	}
+	rm.executors[re.id()] = re
+	rm.mu.Unlock()
+	Logger.Info("rule is updated", zap.ByteString("path", re.requestMatcher.path), zap.ByteString("method", re.requestMatcher.method))
+	return re, nil
+}
+
 func (rm *ruleManager) createRule(rule *types.ResourceRule) (*ruleExecutor, error) {
 	rm.mu.Lock()
 	re, err := rm.createRuleInto(rule, rm.executors)
@@ -243,10 +262,11 @@ func (rm *ruleManager) createRuleInto(rule *types.ResourceRule, m map[string]*ru
 	}
 	_, ok := rm.executors[re.id()]
 	if ok {
-		Logger.Error("failed to create rule duplicated rule", zap.String("path", rule.Request.Path), zap.String("method", rule.Request.Method))
+		Logger.Error("failed to create duplicated rule", zap.String("path", rule.Request.Path), zap.String("method", rule.Request.Method))
 		return nil, errors.New("found duplicated rule")
 	}
 	m[re.id()] = re
+	Logger.Info("created new rule", zap.ByteString("path", re.requestMatcher.path), zap.ByteString("method", re.requestMatcher.method))
 	return re, nil
 }
 
@@ -266,6 +286,25 @@ func (rm *ruleManager) deleteRule(res *types.ResourceRule) {
 	rm.mu.Lock()
 	delete(rm.executors, res.ID) // 不从缓存冲删除，因为无法获取cacheID
 	rm.mu.Unlock()
+	Logger.Info("delete rule with id " + res.ID)
+}
+
+func (rm *ruleManager) patchRule(res *types.ResourceRule) (*ruleExecutor, error) {
+	rm.mu.RLock()
+	re, exists := rm.executors[res.ID]
+	rm.mu.RUnlock()
+
+	if !exists {
+		err := errors.New("cannot patch not exists rule")
+		Logger.Error(err.Error())
+		return nil, err
+	}
+
+	err := re.patch(res)
+	if err == nil {
+		Logger.Info("success patch rule", zap.ByteString("patch", re.requestMatcher.path), zap.ByteString("method", re.requestMatcher.method))
+	}
+	return re, err
 }
 
 func (rm *ruleManager) getRuleByID(i string) (*ruleExecutor, bool) {
@@ -306,7 +345,7 @@ func (rm *ruleManager) importRules(rules ...*types.ResourceRule) error {
 	rm.executors = ne
 	rm.cache.Purge()
 	rm.mu.Unlock()
-
+	Logger.Info("success import rules")
 	return nil
 }
 

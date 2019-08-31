@@ -57,12 +57,13 @@ const (
 )
 
 func (hf *headerFilter) withParameters(p types.ResourceHeaderFilterParameters) error {
+	if err := p.Check(); err != nil {
+		return err
+	}
+
 	hf.params = p
 	if hf.params != nil {
 		hf.mode = hf.params["mode"]
-		if hf.mode == "" {
-			hf.mode = FilterModeAlwaysTrue
-		}
 		delete(hf.params, "mode")
 	} else { // 必须这么判断，否则存在mode值不刷新的可能
 		hf.mode = FilterModeAlwaysTrue
@@ -97,6 +98,10 @@ func (hf *headerFilter) wrap() types.ResourceHeaderFilterParameters {
 }
 
 func (hf *headerFilter) filter(h *fasthttp.RequestHeader) bool {
+	if hf == nil {
+		return true
+	}
+
 	switch hf.mode {
 	case FilterModeAlwaysTrue:
 		return true
@@ -145,12 +150,13 @@ func (hf *headerFilter) filterByRegular(h *fasthttp.RequestHeader) bool {
 }
 
 func (bf *bodyFilter) withParameters(params types.ResourceBodyFilterParameters) error {
+	if err := params.Check(); err != nil {
+		return err
+	}
+
 	bf.params = params
 	if bf.params != nil {
 		bf.mode = bf.params["mode"]
-		if bf.mode == "" {
-			bf.mode = FilterModeAlwaysTrue
-		}
 		delete(bf.params, "mode")
 	} else {
 		bf.mode = FilterModeAlwaysTrue
@@ -195,6 +201,10 @@ func (bf *bodyFilter) wrap() types.ResourceBodyFilterParameters {
 }
 
 func (bf *bodyFilter) filter(body []byte) bool {
+	if bf == nil {
+		return true
+	}
+
 	switch bf.mode {
 	case FilterModeAlwaysTrue:
 		return true
@@ -212,12 +222,13 @@ func (bf *bodyFilter) filter(body []byte) bool {
 }
 
 func (qf *queryFilter) withParameters(query types.ResourceQueryFilterParameters) error {
+	if err := query.Check(); err != nil {
+		return err
+	}
+
 	qf.params = query
 	if qf.params != nil {
 		qf.mode = qf.params["mode"]
-		if qf.mode == "" {
-			qf.mode = FilterModeAlwaysTrue
-		}
 		delete(qf.params, "mode")
 	} else {
 		qf.mode = FilterModeAlwaysTrue
@@ -250,6 +261,10 @@ func (qf *queryFilter) wrap() types.ResourceQueryFilterParameters {
 }
 
 func (qf *queryFilter) filter(query *fasthttp.Args) bool {
+	if qf == nil {
+		return true
+	}
+
 	switch qf.mode {
 	case FilterModeAlwaysTrue:
 		return true
@@ -331,6 +346,9 @@ func (rf *requestFilter) wrap() *types.ResourceFilter {
 }
 
 func (rf *requestFilter) filter(req *fasthttp.Request) bool {
+	if rf == nil {
+		return true
+	}
 	if !rf.header.filter(&req.Header) {
 		return false
 	}

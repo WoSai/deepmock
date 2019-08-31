@@ -26,6 +26,7 @@ func parsePathVar(path, uri []byte) string {
 	return ""
 }
 
+// HandleMockedAPI 处理所有mock api
 func HandleMockedAPI(ctx *fasthttp.RequestCtx, next func(error)) {
 	re, founded := defaultRuleManager.findExecutor(ctx.Request.URI().Path(), ctx.Request.Header.Method())
 	if !founded {
@@ -77,6 +78,7 @@ func render(re *ruleExecutor, rt *responseTemplate, ctx *fasthttp.RequestCtx) {
 	ctx.Response.SetBody(rt.body)
 }
 
+// HandleCreateRule 创建规则接口
 func HandleCreateRule(ctx *fasthttp.RequestCtx, next func(error)) {
 	rule := new(types.ResourceRule)
 	if err := bindBody(ctx, rule); err != nil {
@@ -84,38 +86,22 @@ func HandleCreateRule(ctx *fasthttp.RequestCtx, next func(error)) {
 	}
 
 	re, err := defaultRuleManager.createRule(rule)
-	res := new(types.CommonResource)
-	if err != nil {
-		res.Code = fasthttp.StatusBadRequest
-		res.ErrorMessage = err.Error()
-	} else {
-		res.Code = 200
-		res.Data = re.wrap()
-	}
-
-	data, _ := json.Marshal(res)
-	ctx.Response.Header.SetContentType("application/json")
-	ctx.Response.SetBody(data)
+	renderAPIResponse(&ctx.Response, re, err)
 }
 
+// HandleGetRule 根据rule id获取规则
 func HandleGetRule(ctx *fasthttp.RequestCtx, next func(error)) {
 	ruleID := parsePathVar(apiGetRulePath, ctx.RequestURI())
 
 	re, exists := defaultRuleManager.getRuleByID(ruleID)
-	resp := new(types.CommonResource)
-	if exists {
-		resp.Code = 200
-		resp.Data = re.wrap()
-	} else {
-		resp.Code = 400
-		resp.ErrorMessage = "cannot found rule with id " + ruleID
+	var err error
+	if !exists {
+		err = errors.New("cannot found rule with id " + ruleID)
 	}
-
-	data, _ := json.Marshal(resp)
-	ctx.Response.Header.SetContentType("application/json")
-	ctx.Response.SetBody(data)
+	renderAPIResponse(&ctx.Response, re, err)
 }
 
+// HandleDeleteRule 根据rule id删除规则
 func HandleDeleteRule(ctx *fasthttp.RequestCtx, next func(error)) {
 	res := new(types.ResourceRule)
 	if err := bindBody(ctx, res); err != nil {
@@ -123,20 +109,32 @@ func HandleDeleteRule(ctx *fasthttp.RequestCtx, next func(error)) {
 	}
 
 	defaultRuleManager.deleteRule(res)
-
-	data, _ := json.Marshal(&types.CommonResource{Code: fasthttp.StatusOK})
-	ctx.Response.Header.SetContentType("application/json")
-	ctx.Response.SetBody(data)
+	renderAPIResponse(&ctx.Response, nil, nil)
 }
 
+// HandleUpdateRule 根据rule id更新目前规则，如果规则不存在，不会新建
 func HandleUpdateRule(ctx *fasthttp.RequestCtx, next func(error)) {
+	res := new(types.ResourceRule)
+	if err := bindBody(ctx, res); err != nil {
+		return
+	}
 
+	re, err := defaultRuleManager.updateRule(res)
+	renderAPIResponse(&ctx.Response, re, err)
 }
 
+// HandlePatchRule 根据rule id更新目前规则，与put的区别在于：put需要传入完整的rule对象，而patch只需要传入更新部分即可
 func HandlePatchRule(ctx *fasthttp.RequestCtx, next func(error)) {
+	res := new(types.ResourceRule)
+	if err := bindBody(ctx, res); err != nil {
+		return
+	}
 
+	re, err := defaultRuleManager.patchRule(res)
+	renderAPIResponse(&ctx.Response, re, err)
 }
 
+// HandleExportRules 导出当前所有规则
 func HandleExportRules(ctx *fasthttp.RequestCtx, next func(error)) {
 	re := defaultRuleManager.exportRules()
 	rules := make([]*types.ResourceRule, len(re))
@@ -144,32 +142,17 @@ func HandleExportRules(ctx *fasthttp.RequestCtx, next func(error)) {
 		rules[k] = v.wrap()
 	}
 
-	resp := &types.CommonResource{
-		Code: 200,
-		Data: rules,
-	}
-	data, _ := json.Marshal(resp)
-	ctx.Response.Header.SetContentType("application/json")
-	ctx.Response.SetBody(data)
+	renderAPIResponse(&ctx.Response, rules, nil)
 }
 
+// HandleImportRules 导入规则，将会清空目前所有规则
 func HandleImportRules(ctx *fasthttp.RequestCtx, next func(error)) {
 	var rules []*types.ResourceRule
 	if err := bindBody(ctx, &rules); err != nil {
 		return
 	}
 	err := defaultRuleManager.importRules(rules...)
-	resp := new(types.CommonResource)
-	if err != nil {
-		resp.Code = fasthttp.StatusBadRequest
-		resp.ErrorMessage = err.Error()
-	} else {
-		resp.Code = 200
-	}
-
-	data, _ := json.Marshal(resp)
-	ctx.Response.Header.SetContentType("application/json")
-	ctx.Response.SetBody(data)
+	renderAPIResponse(&ctx.Response, nil, err)
 }
 
 func HandleHelp(ctx *fasthttp.RequestCtx, next func(error)) {
@@ -190,4 +173,19 @@ func bindBody(ctx *fasthttp.RequestCtx, v interface{}) error {
 		return err
 	}
 	return nil
+}
+
+func renderAPIResponse(resp *fasthttp.Response, v interface{}, err error) {
+	res := new(types.CommonResource)
+	if err == nil {
+		res.Code = 200
+		res.Data = v
+	} else {
+		res.Code = 400
+		res.ErrorMessage = err.Error()
+	}
+
+	data, _ := json.Marshal(res)
+	resp.Header.SetContentType("application/json")
+	resp.SetBody(data)
 }

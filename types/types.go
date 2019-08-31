@@ -98,3 +98,36 @@ func (mrs ResourceResponseRegulationSet) Check() error {
 	}
 	return nil
 }
+
+func (hfp ResourceHeaderFilterParameters) Check() error {
+	if hfp == nil {
+		return nil
+	}
+
+	if _, ok := hfp["mode"]; !ok {
+		return errors.New("missing filter mode")
+	}
+	return nil
+}
+
+func (qfp ResourceQueryFilterParameters) Check() error {
+	if qfp == nil {
+		return nil
+	}
+
+	if _, ok := qfp["mode"]; !ok {
+		return errors.New("missing filter mode")
+	}
+	return nil
+}
+
+func (bfp ResourceBodyFilterParameters) Check() error {
+	if bfp == nil {
+		return nil
+	}
+
+	if _, ok := bfp["mode"]; !ok {
+		return errors.New("missing filter mode")
+	}
+	return nil
+}
