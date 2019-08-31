@@ -13,7 +13,7 @@ import (
 )
 
 type (
-	ruleContext types.ResourceContext
+	ruleVariable types.ResourceVariable
 
 	ruleManager struct {
 		executors map[string]*ruleExecutor
@@ -23,7 +23,7 @@ type (
 
 	ruleExecutor struct {
 		requestMatcher      *requestMatcher
-		context             ruleContext
+		variable            ruleVariable
 		weightPicker        weightingPicker
 		responseRegulations responseRegulationSet
 		mu                  sync.RWMutex
@@ -76,7 +76,7 @@ func (rm *requestMatcher) wrap() *types.ResourceRequestMatcher {
 	return rm.raw
 }
 
-func (rc ruleContext) patch(res types.ResourceContext) {
+func (rc ruleVariable) patch(res types.ResourceVariable) {
 	for k, v := range res {
 		rc[k] = v
 	}
@@ -92,8 +92,8 @@ func newRuleExecutor(res *types.ResourceRule) (*ruleExecutor, error) {
 	re.requestMatcher = rm
 	rm.raw = res.Request
 
-	// init context
-	re.context = ruleContext(res.Context)
+	// init variable
+	re.variable = ruleVariable(res.Variable)
 
 	// init weight
 	re.weightPicker = map[string]*weightingDice{}
@@ -130,7 +130,7 @@ func (re *ruleExecutor) wrap() *types.ResourceRule {
 	rule := new(types.ResourceRule)
 	rule.ID = re.id()
 	rule.Request = re.requestMatcher.wrap()
-	rule.Context = types.ResourceContext(re.context)
+	rule.Variable = types.ResourceVariable(re.variable)
 	rule.Weight = re.weightPicker.wrap()
 	rule.Responses = make(types.ResourceResponseRegulationSet, len(re.responseRegulations))
 	for k, v := range re.responseRegulations {
@@ -159,8 +159,8 @@ func (re *ruleExecutor) patch(res *types.ResourceRule) error {
 		re.responseRegulations = rs
 	}
 
-	if res.Context != nil {
-		re.context.patch(res.Context)
+	if res.Variable != nil {
+		re.variable.patch(res.Variable)
 	}
 
 	if res.Weight != nil {
