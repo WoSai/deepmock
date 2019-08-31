@@ -9,7 +9,7 @@
 建议使用docker
 
 ```bash
-docker run -name deepmock -p 16600:16600 -v `pwd`/log:/app/log
+docker run --name deepmock -p 16600:16600 -v `pwd`/log:/app/log -d qastub/deepmock
 ```
 
 ### 快速上手
