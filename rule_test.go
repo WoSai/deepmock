@@ -76,9 +76,9 @@ func TestRuleExecutor_New(t *testing.T) {
 
 func TestRuleExecutor_Wrap(t *testing.T) {
 	rule := &types.ResourceRule{
-		Request: &types.ResourceRequestMatcher{Method: "GET", Path: "/api/v1/store/create"},
-		Context: types.ResourceContext{"version": 1, "name": "foobar"},
-		Weight:  types.ResourceWeight{"return_code": types.ResourceWeightingFactor{"success": 1, "failed": 2}, "error_code": types.ResourceWeightingFactor{"invalid_name": 100}},
+		Request:  &types.ResourceRequestMatcher{Method: "GET", Path: "/api/v1/store/create"},
+		Variable: types.ResourceVariable{"version": 1, "name": "foobar"},
+		Weight:   types.ResourceWeight{"return_code": types.ResourceWeightingFactor{"success": 1, "failed": 2}, "error_code": types.ResourceWeightingFactor{"invalid_name": 100}},
 		Responses: types.ResourceResponseRegulationSet{
 			&types.ResourceResponseRegulation{IsDefault: true, Filter: nil, Response: &types.ResourceResponseTemplate{Body: `{"version": 1}`}},
 		},

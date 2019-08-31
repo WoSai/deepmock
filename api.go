@@ -57,13 +57,13 @@ func HandleMockedAPI(ctx *fasthttp.RequestCtx, next func(error)) {
 func render(re *ruleExecutor, rt *responseTemplate, ctx *fasthttp.RequestCtx) {
 	rt.header.CopyTo(&ctx.Response.Header)
 	if rt.isTemplate {
-		c := re.context
+		c := re.variable
 		w := re.weightPicker.dice()
 		h := extractHeaderAsParams(&ctx.Request)
 		q := extractQueryAsParams(&ctx.Request)
 		f, j := extractBodyAsParams(&ctx.Request)
 
-		rc := renderContext{Context: c, Weight: w, Header: h, Query: q, Form: f, Json: j}
+		rc := renderContext{Variable: c, Weight: w, Header: h, Query: q, Form: f, Json: j}
 		if err := rt.renderTemplate(rc, ctx.Response.BodyWriter()); err != nil {
 			Logger.Error("failed to render response template", zap.Error(err))
 			res := new(types.CommonResource)

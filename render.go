@@ -15,12 +15,12 @@ var (
 
 type (
 	renderContext struct {
-		Context ruleContext
-		Weight  params
-		Header  params
-		Query   params
-		Form    params
-		Json    map[string]interface{}
+		Variable ruleVariable
+		Weight   params
+		Header   params
+		Query    params
+		Form     params
+		Json     map[string]interface{}
 	}
 
 	params map[string]string

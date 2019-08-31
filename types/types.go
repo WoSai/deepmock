@@ -17,7 +17,7 @@ type (
 	ResourceRule struct {
 		ID        string                        `json:"id,omitempty"`
 		Request   *ResourceRequestMatcher       `json:"request,omitempty"`
-		Context   ResourceContext               `json:"context,omitempty"`
+		Variable  ResourceVariable              `json:"variable,omitempty"`
 		Weight    ResourceWeight                `json:"weight,omitempty"`
 		Responses ResourceResponseRegulationSet `json:"responses,omitempty"`
 	}
@@ -28,7 +28,7 @@ type (
 		Response  *ResourceResponseTemplate `json:"response"`
 	}
 
-	ResourceContext map[string]interface{}
+	ResourceVariable map[string]interface{}
 
 	ResourceWeight map[string]ResourceWeightingFactor
 

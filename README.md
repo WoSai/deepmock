@@ -40,7 +40,7 @@ curl -X POST http://127.0.0.1:16600/api/v1/rule \
 ### DeepMock的特性
 
 - 可以以正则表达式声明Mock接口的Path，以便支持RESTFul风格的请求路径
-- 支持设定规则级别的变量(`Context`)，用于在Response中返回
+- 支持设定规则级别的变量(`Variable`)，用于在Response中返回
 - 支持设定规则级别的随机值(`Weight`)，并配以权重，权重越高返回概率越高
 - 单个规则支持多Response模板，并通过筛选器`filter`来命中相应模板
 - 筛选器支持QueryString、HTTP Header、Body
@@ -53,7 +53,7 @@ curl -X POST http://127.0.0.1:16600/api/v1/rule \
     * 可以使用逻辑控制，如: `if`，`range`
     * 可以使用内置函数
     * 可以自定义函数
-- 规则中的`Context`、`Weight`以及请求中的`Header`、`Query`、`Form`、`Json`同样参与Response模板的渲染
+- 规则中的`Variable`、`Weight`以及请求中的`Header`、`Query`、`Form`、`Json`同样参与Response模板的渲染
 
 ### 接口列表：
 
@@ -67,7 +67,7 @@ curl -X POST http://127.0.0.1:16600/api/v1/rule \
         "path": "/(.*)",
         "method": "get"
     },
-    "context": {
+    "variable": {
         "value": "123",
         "name":"jack",
         "version": 123
@@ -104,7 +104,7 @@ curl -X POST http://127.0.0.1:16600/api/v1/rule \
         		"header": {
         			"Content-Type": "application/json"
         		},
-        		"body": "{\"hello\":\"{{.Context.name}}\", \"country\":\"{{.Query.country}}\",\"body\":\"{{.Form.nickname}}\"}"
+        		"body": "{\"hello\":\"{{.Variable.name}}\", \"country\":\"{{.Query.country}}\",\"body\":\"{{.Form.nickname}}\"}"
         	}
         }
     ]
@@ -152,7 +152,7 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
 ```json
 {
     "id": "bba079deaa2b97037694a89386616d88",
-    "context": {
+    "variable": {
         "value": "456"
     },
     "weights": {
