@@ -4,6 +4,14 @@
 [![build-state](https://travis-ci.org/qastub/deepmock.svg?branch=master)](https://travis-ci.org/qastub/deepmock)
 [![codecov](https://codecov.io/gh/qastub/deepmock/branch/master/graph/badge.svg)](https://codecov.io/gh/qastub/deepmock)
 
+### 下载安装
+
+建议使用docker
+
+```bash
+docker run -name deepmock -p 16600:16600 -v `pwd`/log:/app/log
+```
+
 ### 快速上手
 
 **创建Mock规则:**
