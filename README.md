@@ -3,6 +3,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/qastub/ultron)](https://goreportcard.com/report/github.com/qastub/deepmock)
 [![build-state](https://travis-ci.org/qastub/deepmock.svg?branch=master)](https://travis-ci.org/qastub/deepmock)
 [![codecov](https://codecov.io/gh/qastub/deepmock/branch/master/graph/badge.svg)](https://codecov.io/gh/qastub/deepmock)
+[![GoDoc](https://godoc.org/github.com/qastub/deepmock?status.svg)](https://godoc.org/github.com/qastub/deepmock)
+
 
 ### 下载安装
 
