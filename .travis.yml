@@ -1,18 +1,17 @@
 language: go
-
 go:
-  - 1.12.x
-
+- 1.12.x
+services:
+- docker
 env:
-  - GO111MODULE=on
-
+  secure: BEAUbdda+RH+m7idkMTPBi2IqOfhX/hEj4R5EuyXSc8o2ho6a2ha/TghpXK3fpq9MCPvuzpqfvuvVOo/fFB3LoN3R1bsj0aKEbNQLSctpR+cBNNYggvBHGQO9Wx+tSo91GLts4PMOdby4CPjNe6fup834zQOQersOgdQ7g85Narvv25lpDx6oYiHY2kNaQC99PBvNdug0xwzGlMQUlfjzkhrykJqaQz1kfHWqH63J01ZGNToTBxUkRt6SAQd2XDTstKaumoI99sBPLrsd9C86x5tJlzcAry37oomD8KJWWk5MbkZwjDJvIZ5MzkWSMo2YnvzVFemgnyYY3VrthrFmc9+vEmTS4n66vr//GzpiwTH30A9aN9pEvn5tv8uk+8yv24OSMsFPD3rqqt2Oz9YfpLHusTOMsRjtZbQ1m01JQbMyC8VhPh58CuryEVYEXUu1Gajvw8kN53BcRxfmGrpTn8EcV6r8yjwL3rVLLxFuwtVKjKgBhNL1mpXFySvtMDflAViRT2pA6ptp8NuYokLhFXk/+vBNwDMhJj8j3CrdWlXX3hD70nt4CkDn39kYNDFHcuDYO6c1vjCPSoQWmxN9zCWayEa1FrvIGi8XQDfmox3GsOhF2NH1vQchOu++o+o6GrCGr7CvTUHpEi43nBJLHRG8We6BCkIDrllzPboP8g=
 git:
   depth: 1
-
 install: true
-
 script:
-  - go test -race -coverprofile=coverage.txt -covermode=atomic -v
-
+- go test -race -coverprofile=coverage.txt -covermode=atomic -v
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
+- bash <(curl -s https://codecov.io/bash)
+- docker build -t qastub/deepmock:$TRAVIS_COMMIT .
+- echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+- docker push qastub/deepmock:$TRAVIS_COMMIT
