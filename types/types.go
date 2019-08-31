@@ -16,10 +16,10 @@ type (
 
 	ResourceRule struct {
 		ID        string                        `json:"id,omitempty"`
-		Request   *ResourceRequestMatcher       `json:"request"`
+		Request   *ResourceRequestMatcher       `json:"request,omitempty"`
 		Context   ResourceContext               `json:"context,omitempty"`
 		Weight    ResourceWeight                `json:"weight,omitempty"`
-		Responses ResourceResponseRegulationSet `json:"responses"`
+		Responses ResourceResponseRegulationSet `json:"responses,omitempty"`
 	}
 
 	ResourceResponseRegulation struct {

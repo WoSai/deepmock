@@ -1,10 +1,30 @@
 package deepmock
 
 import (
+	"bytes"
+	"errors"
+
 	"github.com/qastub/deepmock/types"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
 )
+
+var (
+	slash          = []byte(`/`)
+	apiGetRulePath = []byte(`/api/v1/rule`)
+)
+
+func parsePathVar(path, uri []byte) string {
+	if bytes.Compare(path, uri) == 1 {
+		panic(errors.New("bad request uir"))
+	}
+
+	external := bytes.Split(uri[len(path)-1:], slash) // 忽略第一个 / 符号
+	if len(external) >= 2 {
+		return string(external[1])
+	}
+	return ""
+}
 
 func HandleMockedAPI(ctx *fasthttp.RequestCtx, next func(error)) {
 	re, founded := defaultRuleManager.findExecutor(ctx.Request.URI().Path(), ctx.Request.Header.Method())
@@ -79,11 +99,34 @@ func HandleCreateRule(ctx *fasthttp.RequestCtx, next func(error)) {
 }
 
 func HandleGetRule(ctx *fasthttp.RequestCtx, next func(error)) {
+	ruleID := parsePathVar(apiGetRulePath, ctx.RequestURI())
 
+	re, exists := defaultRuleManager.getRuleByID(ruleID)
+	resp := new(types.CommonResource)
+	if exists {
+		resp.Code = 200
+		resp.Data = re.wrap()
+	} else {
+		resp.Code = 400
+		resp.ErrorMessage = "cannot found rule with id " + ruleID
+	}
+
+	data, _ := json.Marshal(resp)
+	ctx.Response.Header.SetContentType("application/json")
+	ctx.Response.SetBody(data)
 }
 
 func HandleDeleteRule(ctx *fasthttp.RequestCtx, next func(error)) {
+	res := new(types.ResourceRule)
+	if err := bindBody(ctx, res); err != nil {
+		return
+	}
 
+	defaultRuleManager.deleteRule(res)
+
+	data, _ := json.Marshal(&types.CommonResource{Code: fasthttp.StatusOK})
+	ctx.Response.Header.SetContentType("application/json")
+	ctx.Response.SetBody(data)
 }
 
 func HandleUpdateRule(ctx *fasthttp.RequestCtx, next func(error)) {
@@ -95,11 +138,38 @@ func HandlePatchRule(ctx *fasthttp.RequestCtx, next func(error)) {
 }
 
 func HandleExportRules(ctx *fasthttp.RequestCtx, next func(error)) {
+	re := defaultRuleManager.exportRules()
+	rules := make([]*types.ResourceRule, len(re))
+	for k, v := range re {
+		rules[k] = v.wrap()
+	}
 
+	resp := &types.CommonResource{
+		Code: 200,
+		Data: rules,
+	}
+	data, _ := json.Marshal(resp)
+	ctx.Response.Header.SetContentType("application/json")
+	ctx.Response.SetBody(data)
 }
 
 func HandleImportRules(ctx *fasthttp.RequestCtx, next func(error)) {
+	var rules []*types.ResourceRule
+	if err := bindBody(ctx, &rules); err != nil {
+		return
+	}
+	err := defaultRuleManager.importRules(rules...)
+	resp := new(types.CommonResource)
+	if err != nil {
+		resp.Code = fasthttp.StatusBadRequest
+		resp.ErrorMessage = err.Error()
+	} else {
+		resp.Code = 200
+	}
 
+	data, _ := json.Marshal(resp)
+	ctx.Response.Header.SetContentType("application/json")
+	ctx.Response.SetBody(data)
 }
 
 func HandleHelp(ctx *fasthttp.RequestCtx, next func(error)) {

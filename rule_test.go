@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/qastub/deepmock/types"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -63,12 +62,36 @@ func TestResponseRegulation_Wrap(t *testing.T) {
 	assert.Equal(t, string(d1), string(d2))
 }
 
-func TestWeightingFactorHub_Wrap(t *testing.T) {
-	res := types.ResourceWeight{
-		"code":     types.ResourceWeightingFactor{"CREATED": 1, "CLOSED": 2},
-		"err_code": types.ResourceWeightingFactor{"INVALID_NAME": 0, "INVALID_BANK_ACCOUNT": 2}}
-	wfh := newWeightingPicker(res)
-	wfh.wrap()
+func TestRuleExecutor_New(t *testing.T) {
+	rule := &types.ResourceRule{
+		Request: &types.ResourceRequestMatcher{Method: "GET", Path: "/api/v1/store/create"},
+		Responses: types.ResourceResponseRegulationSet{
+			&types.ResourceResponseRegulation{IsDefault: true, Response: &types.ResourceResponseTemplate{Body: `{"version": 1}`}},
+		},
+	}
 
-	assert.EqualValues(t, res, wfh.wrap())
+	_, err := newRuleExecutor(rule)
+	assert.Nil(t, err)
+}
+
+func TestRuleExecutor_Wrap(t *testing.T) {
+	rule := &types.ResourceRule{
+		Request: &types.ResourceRequestMatcher{Method: "GET", Path: "/api/v1/store/create"},
+		Context: types.ResourceContext{"version": 1, "name": "foobar"},
+		Weight:  types.ResourceWeight{"return_code": types.ResourceWeightingFactor{"success": 1, "failed": 2}, "error_code": types.ResourceWeightingFactor{"invalid_name": 100}},
+		Responses: types.ResourceResponseRegulationSet{
+			&types.ResourceResponseRegulation{IsDefault: true, Filter: nil, Response: &types.ResourceResponseTemplate{Body: `{"version": 1}`}},
+		},
+	}
+
+	data, _ := json.Marshal(rule)
+
+	re, err := newRuleExecutor(rule)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, re.id())
+
+	rule2 := re.wrap()
+	rule2.ID = ""
+	data2, _ := json.Marshal(rule2)
+	assert.Equal(t, data, data2)
 }

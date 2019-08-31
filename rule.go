@@ -6,10 +6,9 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/valyala/fasthttp"
-
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/qastub/deepmock/types"
+	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
 )
 
@@ -26,7 +25,7 @@ type (
 		requestMatcher      *requestMatcher
 		context             ruleContext
 		weightPicker        weightingPicker
-		responseRegulations []*responseRegulation
+		responseRegulations responseRegulationSet
 		mu                  sync.RWMutex
 	}
 
@@ -38,6 +37,8 @@ type (
 		re     *regexp.Regexp
 		raw    *types.ResourceRequestMatcher
 	}
+
+	responseRegulationSet []*responseRegulation
 )
 
 var (
@@ -131,7 +132,7 @@ func (re *ruleExecutor) wrap() *types.ResourceRule {
 	rule.Request = re.requestMatcher.wrap()
 	rule.Context = types.ResourceContext(re.context)
 	rule.Weight = re.weightPicker.wrap()
-	rule.Responses = types.ResourceResponseRegulationSet{}
+	rule.Responses = make(types.ResourceResponseRegulationSet, len(re.responseRegulations))
 	for k, v := range re.responseRegulations {
 		rule.Responses[k] = v.wrap()
 	}
@@ -209,8 +210,13 @@ func (rm *ruleManager) findExecutor(path, method []byte) (*ruleExecutor, bool) {
 
 	cacheID := rm.genCacheID(path, method)
 	execID, cached := rm.cache.Get(cacheID)
-	if cached {
-		return rm.executors[execID.(string)], true
+	if cached { // 缓存中存在时，不代表该ruleExecutor一定存在，有可能规则已经删除，但未清理缓存
+		re, exists := rm.executors[execID.(string)]
+		if exists {
+			return re, true
+		}
+		rm.cache.Remove(cacheID)
+		return nil, false
 	}
 
 	for id, exec := range rm.executors {
@@ -225,31 +231,86 @@ func (rm *ruleManager) findExecutor(path, method []byte) (*ruleExecutor, bool) {
 
 func (rm *ruleManager) createRule(rule *types.ResourceRule) (*ruleExecutor, error) {
 	rm.mu.Lock()
-	defer rm.mu.Unlock()
+	re, err := rm.createRuleInto(rule, rm.executors)
+	rm.mu.Unlock()
+	return re, err
+}
 
+func (rm *ruleManager) createRuleInto(rule *types.ResourceRule, m map[string]*ruleExecutor) (*ruleExecutor, error) {
 	re, err := newRuleExecutor(rule)
 	if err != nil {
 		return nil, err
 	}
 	_, ok := rm.executors[re.id()]
 	if ok {
-		Logger.Error("failed to create duplicated rule", zap.String("path", rule.Request.Path), zap.String("method", rule.Request.Method))
+		Logger.Error("failed to create rule duplicated rule", zap.String("path", rule.Request.Path), zap.String("method", rule.Request.Method))
 		return nil, errors.New("found duplicated rule")
 	}
-	rm.executors[re.id()] = re
+	m[re.id()] = re
 	return re, nil
 }
 
 func (rm *ruleManager) batchCreateRules(rules ...*types.ResourceRule) error {
+	rm.mu.Lock()
 	for _, rule := range rules {
-		if _, err := rm.createRule(rule); err != nil {
+		if _, err := rm.createRuleInto(rule, rm.executors); err != nil {
+			rm.mu.Unlock()
 			return err
 		}
 	}
+	rm.mu.Unlock()
 	return nil
 }
 
-func (rm *ruleManager) purge() {
+func (rm *ruleManager) deleteRule(res *types.ResourceRule) {
+	rm.mu.Lock()
+	delete(rm.executors, res.ID) // 不从缓存冲删除，因为无法获取cacheID
+	rm.mu.Unlock()
+}
+
+func (rm *ruleManager) getRuleByID(i string) (*ruleExecutor, bool) {
+	rm.mu.RLock()
+	re, exists := rm.executors[i]
+	rm.mu.RUnlock()
+	return re, exists
+}
+
+func (rm *ruleManager) getRule(res *types.ResourceRule) (*ruleExecutor, bool) {
+	rm.mu.RLock()
+	re, exists := rm.executors[res.ID]
+	rm.mu.RUnlock()
+	return re, exists
+}
+
+func (rm *ruleManager) exportRules() []*ruleExecutor {
+	rm.mu.RLock()
+	es := make([]*ruleExecutor, len(rm.executors))
+	var count int
+	for _, v := range rm.executors {
+		es[count] = v
+		count++
+	}
+	rm.mu.RUnlock()
+	return es
+}
+
+func (rm *ruleManager) importRules(rules ...*types.ResourceRule) error {
+	ne := make(map[string]*ruleExecutor)
+	for _, rule := range rules {
+		if _, err := rm.createRuleInto(rule, ne); err != nil {
+			return err
+		}
+	}
+
+	rm.mu.Lock()
+	rm.executors = ne
+	rm.cache.Purge()
+	rm.mu.Unlock()
+
+	return nil
+}
+
+func (rm *ruleManager) reset() {
 	rm.mu.Lock()
 
 	for k := range rm.executors {

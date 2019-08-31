@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 
+	"github.com/valyala/fasthttp"
+
 	"github.com/qastub/deepmock"
 	"github.com/vincentLiuxiang/lu"
 	"go.uber.org/zap"
@@ -15,7 +17,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&onPort, "port", onPort, "deepmock监听端口")
+	flag.StringVar(&onPort, "port", onPort, "监听端口")
 	flag.StringVar(&datasource, "datasource", datasource, "数据库连接地址")
 }
 
@@ -29,14 +31,20 @@ func main() {
 	app.Get("/api/v1/rule", deepmock.HandleGetRule)
 	app.Post("/api/v1/rule", deepmock.HandleCreateRule)
 	app.Put("/api/v1/rule", deepmock.HandleUpdateRule)
-	app.Patch("/app/v1/rule", deepmock.HandlePatchRule)
-	app.Delete("/app/v1/rule", deepmock.HandleDeleteRule)
+	app.Patch("/api/v1/rule", deepmock.HandlePatchRule)
+	app.Delete("/api/v1/rule", deepmock.HandleDeleteRule)
 
-	app.Get("/app/v1/rules", deepmock.HandleExportRules)
-	app.Post("/app/v1/rules", deepmock.HandleImportRules)
+	app.Get("/api/v1/rules", deepmock.HandleExportRules)
+	app.Post("/api/v1/rules", deepmock.HandleImportRules)
 
 	app.Use("/", deepmock.HandleMockedAPI)
 
+	server := &fasthttp.Server{
+		Name:        "DeepMock Service",
+		Handler:     app.Handler,
+		Concurrency: 1024 * 1024,
+	}
+
 	deepmock.Logger.Info("deepmock will listen on port "+onPort, zap.String("version", version))
-	deepmock.Logger.Fatal("deepmock is down", zap.Error(app.Listen(onPort)))
+	deepmock.Logger.Fatal("deepmock is down", zap.Error(server.ListenAndServe(onPort)))
 }

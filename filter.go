@@ -297,6 +297,9 @@ func (qf *queryFilter) filterByRegular(query *fasthttp.Args) bool {
 }
 
 func newRequestFilter(f *types.ResourceFilter) (*requestFilter, error) {
+	if f == nil {
+		return nil, nil
+	}
 	var err error
 	h := new(headerFilter)
 	if err = h.withParameters(f.Header); err != nil {
@@ -317,6 +320,9 @@ func newRequestFilter(f *types.ResourceFilter) (*requestFilter, error) {
 }
 
 func (rf *requestFilter) wrap() *types.ResourceFilter {
+	if rf == nil {
+		return nil
+	}
 	f := new(types.ResourceFilter)
 	f.Header = rf.header.wrap()
 	f.Query = rf.query.wrap()
