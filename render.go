@@ -4,9 +4,8 @@ import (
 	"bytes"
 	"net/url"
 
-	"go.uber.org/zap"
-
 	"github.com/valyala/fasthttp"
+	"go.uber.org/zap"
 )
 
 var (
@@ -18,6 +17,7 @@ type (
 	renderContext struct {
 		Context ruleContext
 		Weight  params
+		Header  params
 		Query   params
 		Form    params
 		Json    map[string]interface{}
@@ -25,6 +25,14 @@ type (
 
 	params map[string]string
 )
+
+func extractHeaderAsParams(req *fasthttp.Request) params {
+	p := make(params)
+	req.Header.VisitAll(func(key, value []byte) {
+		p[string(key)] = string(value)
+	})
+	return p
+}
 
 func extractQueryAsParams(req *fasthttp.Request) params {
 	p := make(params)
