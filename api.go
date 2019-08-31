@@ -86,7 +86,11 @@ func HandleCreateRule(ctx *fasthttp.RequestCtx, next func(error)) {
 	}
 
 	re, err := defaultRuleManager.createRule(rule)
-	renderAPIResponse(&ctx.Response, re, err)
+	if err != nil {
+		renderFailedAPIResponse(&ctx.Response, err)
+		return
+	}
+	renderSuccessfulResponse(&ctx.Response, re.wrap())
 }
 
 // HandleGetRule 根据rule id获取规则
@@ -98,7 +102,11 @@ func HandleGetRule(ctx *fasthttp.RequestCtx, next func(error)) {
 	if !exists {
 		err = errors.New("cannot found rule with id " + ruleID)
 	}
-	renderAPIResponse(&ctx.Response, re, err)
+	if err != nil {
+		renderFailedAPIResponse(&ctx.Response, err)
+		return
+	}
+	renderSuccessfulResponse(&ctx.Response, re.wrap())
 }
 
 // HandleDeleteRule 根据rule id删除规则
@@ -109,7 +117,7 @@ func HandleDeleteRule(ctx *fasthttp.RequestCtx, next func(error)) {
 	}
 
 	defaultRuleManager.deleteRule(res)
-	renderAPIResponse(&ctx.Response, nil, nil)
+	renderSuccessfulResponse(&ctx.Response, nil)
 }
 
 // HandleUpdateRule 根据rule id更新目前规则，如果规则不存在，不会新建
@@ -120,7 +128,11 @@ func HandleUpdateRule(ctx *fasthttp.RequestCtx, next func(error)) {
 	}
 
 	re, err := defaultRuleManager.updateRule(res)
-	renderAPIResponse(&ctx.Response, re, err)
+	if err != nil {
+		renderFailedAPIResponse(&ctx.Response, err)
+		return
+	}
+	renderSuccessfulResponse(&ctx.Response, re.wrap())
 }
 
 // HandlePatchRule 根据rule id更新目前规则，与put的区别在于：put需要传入完整的rule对象，而patch只需要传入更新部分即可
@@ -131,7 +143,11 @@ func HandlePatchRule(ctx *fasthttp.RequestCtx, next func(error)) {
 	}
 
 	re, err := defaultRuleManager.patchRule(res)
-	renderAPIResponse(&ctx.Response, re, err)
+	if err != nil {
+		renderFailedAPIResponse(&ctx.Response, err)
+		return
+	}
+	renderSuccessfulResponse(&ctx.Response, re.wrap())
 }
 
 // HandleExportRules 导出当前所有规则
@@ -142,7 +158,7 @@ func HandleExportRules(ctx *fasthttp.RequestCtx, next func(error)) {
 		rules[k] = v.wrap()
 	}
 
-	renderAPIResponse(&ctx.Response, rules, nil)
+	renderSuccessfulResponse(&ctx.Response, rules)
 }
 
 // HandleImportRules 导入规则，将会清空目前所有规则
@@ -152,7 +168,11 @@ func HandleImportRules(ctx *fasthttp.RequestCtx, next func(error)) {
 		return
 	}
 	err := defaultRuleManager.importRules(rules...)
-	renderAPIResponse(&ctx.Response, nil, err)
+	if err != nil {
+		renderFailedAPIResponse(&ctx.Response, err)
+		return
+	}
+	renderSuccessfulResponse(&ctx.Response, nil)
 }
 
 func HandleHelp(ctx *fasthttp.RequestCtx, next func(error)) {
@@ -175,16 +195,19 @@ func bindBody(ctx *fasthttp.RequestCtx, v interface{}) error {
 	return nil
 }
 
-func renderAPIResponse(resp *fasthttp.Response, v interface{}, err error) {
-	res := new(types.CommonResource)
-	if err == nil {
-		res.Code = 200
-		res.Data = v
-	} else {
-		res.Code = 400
-		res.ErrorMessage = err.Error()
+func renderSuccessfulResponse(resp *fasthttp.Response, v interface{}) {
+	res := &types.CommonResource{
+		Code: 200,
+		Data: v,
 	}
 
+	data, _ := json.Marshal(res)
+	resp.Header.SetContentType("application/json")
+	resp.SetBody(data)
+}
+
+func renderFailedAPIResponse(resp *fasthttp.Response, err error) {
+	res := &types.CommonResource{Code: 400, ErrorMessage: err.Error()}
 	data, _ := json.Marshal(res)
 	resp.Header.SetContentType("application/json")
 	resp.SetBody(data)

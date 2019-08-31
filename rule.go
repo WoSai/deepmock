@@ -175,16 +175,19 @@ func (re *ruleExecutor) visitBy(req *fasthttp.Request) *responseRegulation {
 	re.mu.RLock()
 
 	var d *responseRegulation
-	for _, regulation := range re.responseRegulations {
+	for i, regulation := range re.responseRegulations {
 		if regulation.isDefault {
 			d = regulation
+			Logger.Info("found the default response regulation", zap.Int("index", i), zap.String("rule", re.id()))
 		}
 		if regulation.filter(req) {
 			re.mu.RUnlock()
+			Logger.Info("hit the response regulation", zap.Int("index", i), zap.String("rule", re.id()))
 			return regulation
 		}
 	}
 	re.mu.RUnlock()
+	Logger.Info("no response regulation hit, use default response", zap.String("rule", re.id()))
 	return d
 }
 

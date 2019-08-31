@@ -357,7 +357,7 @@ func (rf *requestFilter) filter(req *fasthttp.Request) bool {
 		return false
 	}
 
-	if rf.body.filter(req.Body()) {
+	if !rf.body.filter(req.Body()) {
 		return false
 	}
 	return true
