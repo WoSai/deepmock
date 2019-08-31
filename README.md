@@ -251,3 +251,119 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
     }
 ]
 ```
+
+### 过滤器Filter设置规则
+
+#### Header Filter
+
+精确模式
+
+```json
+{
+    "filter": {
+        "header": {
+            "mode": "exact",
+            "Authorization": "balabala",
+            "Content-Type": "application/json"
+        }
+    }
+}
+```
+
+关键字模式
+
+```json
+{
+    "filter": {
+        "header": {
+            "mode": "keyword",
+            "Content-Type": "json"
+        }
+    }
+}
+```
+
+正则匹配模式
+
+```json
+{
+    "filter": {
+        "header": {
+            "mode": "regular",
+            "Authorization": "[0-9]+"
+        }
+    }
+}
+```
+
+#### Query Filter
+
+精确模式
+
+```json
+{
+    "filter": {
+        "query": {
+            "mode": "exact",
+            "code": "balabala",
+            "version": "1.0"
+        }
+    }
+}
+```
+
+关键字模式
+
+```json
+{
+    "filter": {
+        "query": {
+            "mode": "keyword",
+            "version": "1"
+        }
+    }
+}
+```
+
+正则匹配模式
+
+```json
+{
+    "filter": {
+        "query": {
+            "mode": "regular",
+            "version": "[0-9.]+"
+        }
+    }
+}
+```
+
+#### Body Filter
+
+**暂时不支持精确匹配模式**
+
+关键字模式
+
+```json
+{
+    "filter": {
+        "body": {
+            "mode": "keyword",
+            "keyword": "store"  // 必须使用该key值
+        }
+    }
+}
+```
+
+正则匹配模式
+
+```json
+{
+    "filter": {
+        "query": {
+            "mode": "regular",
+            "regular": "[0-9.]+"  // 必须使用该key值
+        }
+    }
+}
+```
