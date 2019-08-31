@@ -11,6 +11,7 @@ import (
 var (
 	onPort     = ":16600"
 	datasource = "localhost:3306"
+	version    = "(git commit revision)"
 )
 
 func init() {
@@ -23,6 +24,8 @@ func main() {
 
 	app := lu.New()
 
+	app.Get("/api/help", deepmock.HandleHelp)
+
 	app.Get("/api/v1/rule", deepmock.HandleGetRule)
 	app.Post("/api/v1/rule", deepmock.HandleCreateRule)
 	app.Put("/api/v1/rule", deepmock.HandleUpdateRule)
@@ -34,6 +37,6 @@ func main() {
 
 	app.Use("/", deepmock.HandleMockedAPI)
 
-	deepmock.Logger.Info("deepmock will listen on port " + onPort)
+	deepmock.Logger.Info("deepmock will listen on port "+onPort, zap.String("version", version))
 	deepmock.Logger.Fatal("deepmock is down", zap.Error(app.Listen(onPort)))
 }
