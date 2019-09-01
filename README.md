@@ -409,7 +409,8 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
 |`uuid` | 无 | `{{ uuid }}`|返回一个uuid字符串|
 |`date`| `layout` | `{{date "layout"}}` | 按指定的格式返回当前日期，[参考链接](https://golang.google.cn/pkg/time/) |
 |`timestamp` | `precision` | `{{timestamp ms}}` | 按指定的精度返回unix时间戳：mcs,ms,sec|
-|`plus`| `v`, `i` | `{{plus v i}}` | 讲v的值增加i，实现简单的计算，支持string\int\float类型|
+|`plus`| `v`, `i` | `{{plus v i}}` | 将v的值增加i，实现简单的计算，支持string\int\float类型|
+|`rand_string`| `n` | `{{rand_string n}}`| 生成长度为n的随机字符串 |
  
 
 ### Benchmark

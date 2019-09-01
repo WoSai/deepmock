@@ -65,3 +65,14 @@ func TestPlusFunc(t *testing.T) {
 	assert.Nil(t, tmpl.Execute(buf, ctx))
 	assert.Equal(t, buf.String(), "791.2")
 }
+
+func TestGenRandstring(t *testing.T) {
+	tmpl, err := template.New("test").Funcs(defaultTemplateFuncs).Parse(
+		`{{rand_string 8}}`)
+	assert.Nil(t, err)
+
+	buff := bytes.NewBuffer(nil)
+	ctx := renderContext{}
+	assert.Nil(t, tmpl.Execute(buff, ctx))
+	assert.Equal(t, len(buff.String()), 8)
+}

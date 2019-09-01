@@ -133,4 +133,5 @@ func init() {
 	_ = RegisterTemplateFunc("timestamp", currentTimestamp)
 	_ = RegisterTemplateFunc("date", formatDate)
 	_ = RegisterTemplateFunc("plus", plus)
+	_ = RegisterTemplateFunc("rand_string", genRandomString)
 }
