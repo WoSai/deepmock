@@ -106,3 +106,41 @@ func TestRuleManager_FindExecutor(t *testing.T) {
 	assert.False(t, cached)
 	assert.False(t, founded)
 }
+
+func TestRuleManager_UpdateRule(t *testing.T) {
+	rm := newRuleManager()
+
+	r := &types.ResourceRule{
+		Request: &types.ResourceRequestMatcher{Path: "/api/v1/rule/[0-9]+", Method: "GET"},
+		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
+			IsDefault: true,
+			Response:  &types.ResourceResponseTemplate{Body: "hello rule"},
+		}},
+	}
+
+	//r2 := &types.ResourceRule{
+	//	Request: &types.ResourceRequestMatcher{Path: "/api/v1/store/[0-9]+", Method: "GET"},
+	//	Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
+	//		IsDefault: true,
+	//		Response:  &types.ResourceResponseTemplate{Body: "hello store"},
+	//	}},
+	//}
+
+	re1, err := rm.createRule(r)
+	assert.Nil(t, err)
+	assert.NotNil(t, re1)
+
+	r.Request.Method = "POST"
+	_, err = rm.updateRule(r)
+	assert.Error(t, err, "the rule to update is not exists")
+	re3, _ := rm.getRuleByID(re1.id())
+	assert.Equal(t, re1, re3)
+
+	r.Request.Method = "GET"
+	r.Responses = append(r.Responses, &types.ResourceResponseRegulation{
+		Filter:   &types.ResourceFilter{Body: types.ResourceBodyFilterParameters{"mode": "always_true"}},
+		Response: &types.ResourceResponseTemplate{Body: "foobar"}})
+	re4, err := rm.updateRule(r)
+	assert.Nil(t, err)
+	assert.NotEqual(t, re1, re4)
+}
