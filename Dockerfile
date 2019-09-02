@@ -14,7 +14,9 @@ RUN set -e \
 FROM alpine
 WORKDIR /app
 COPY --from=builder /go/src/github.com/qastub/deepmock/deepmock .
+COPY entrypoint.sh /usr/bin/
 VOLUME /app/log
 ENV DEEPMOCK_LOGFILE /app/log/deepmock.log
 EXPOSE 16600
-CMD ["/app/deepmock"]
+ENTRYPOINT ["entrypoint.sh"]
+CMD ["-port", ":16600"]
