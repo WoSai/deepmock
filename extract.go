@@ -13,19 +13,6 @@ var (
 	jsonContentType      = []byte("application/json")
 )
 
-type (
-	renderContext struct {
-		Variable ruleVariable
-		Weight   params
-		Header   params
-		Query    params
-		Form     params
-		Json     map[string]interface{}
-	}
-
-	params map[string]string
-)
-
 func extractHeaderAsParams(req *fasthttp.Request) params {
 	p := make(params)
 	req.Header.VisitAll(func(key, value []byte) {
@@ -57,7 +44,7 @@ func extractBodyAsParams(req *fasthttp.Request) (params, map[string]interface{})
 		p := make(params)
 		form, err := req.MultipartForm()
 		if err != nil {
-			Logger.Error("bad multipart form data")
+			Logger.Error("bad multipart form data", zap.Error(err))
 			return nil, nil
 		}
 		for k, v := range form.Value {

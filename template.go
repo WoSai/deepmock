@@ -24,6 +24,17 @@ type (
 		htmlTemplate *template.Template
 		raw          *types.ResourceResponseTemplate
 	}
+
+	renderContext struct {
+		Variable ruleVariable
+		Weight   params
+		Header   params
+		Query    params
+		Form     params
+		Json     map[string]interface{}
+	}
+
+	params map[string]string
 )
 
 var (
