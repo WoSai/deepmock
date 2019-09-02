@@ -28,7 +28,7 @@ func parsePathVar(path, uri []byte) string {
 
 // HandleMockedAPI 处理所有mock api
 func HandleMockedAPI(ctx *fasthttp.RequestCtx, next func(error)) {
-	re, founded := defaultRuleManager.findExecutor(ctx.Request.URI().Path(), ctx.Request.Header.Method())
+	re, founded, _ := defaultRuleManager.findExecutor(ctx.Request.URI().Path(), ctx.Request.Header.Method())
 	if !founded {
 		res := new(types.CommonResource)
 		res.Code = 400

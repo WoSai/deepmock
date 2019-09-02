@@ -207,8 +207,9 @@ func (rm *ruleManager) genCacheID(path, method []byte) string {
 	return string(method) + string(path)
 }
 
-func (rm *ruleManager) findExecutor(path, method []byte) (*ruleExecutor, bool) {
+func (rm *ruleManager) findExecutor(path, method []byte) (re *ruleExecutor, exists bool, cached bool) {
 	cacheID := rm.genCacheID(path, method)
+	Logger.Info(cacheID)
 	execID, cached := rm.cache.Get(cacheID)
 	if cached { // 缓存中存在时，不代表该ruleExecutor一定存在，有可能规则已经删除，但未清理缓存
 		rm.mu.RLock()
@@ -216,10 +217,10 @@ func (rm *ruleManager) findExecutor(path, method []byte) (*ruleExecutor, bool) {
 		rm.mu.RUnlock()
 
 		if exists {
-			return re, true
+			return re, true, true
 		}
 		rm.cache.Remove(cacheID)
-		return nil, false
+		return nil, false, false
 	}
 
 	rm.mu.RLock()
@@ -227,11 +228,11 @@ func (rm *ruleManager) findExecutor(path, method []byte) (*ruleExecutor, bool) {
 		if exec.match(path, method) {
 			rm.mu.RUnlock()
 			rm.cache.Add(cacheID, id)
-			return exec, true
+			return exec, true, false
 		}
 	}
 	rm.mu.RUnlock()
-	return nil, false
+	return nil, false, false
 }
 
 func (rm *ruleManager) updateRule(rule *types.ResourceRule) (*ruleExecutor, error) {

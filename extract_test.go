@@ -44,7 +44,8 @@ func TestExtractFromUrlencodedForm(t *testing.T) {
 	f, _ := extractBodyAsParams(req)
 	assert.EqualValues(t, f, params{"name": "foobar", "message": "中国"})
 
-	args := new(fasthttp.Args)
+	args := fasthttp.AcquireArgs()
+	defer fasthttp.ReleaseArgs(args)
 	args.Set("name", "foobar")
 	args.Set("message", "中国")
 	req.SetBody(args.QueryString())
@@ -78,4 +79,15 @@ func TestExtractFromJson(t *testing.T) {
 
 	_, j := extractBodyAsParams(req)
 	assert.EqualValues(t, map[string]interface{}{"name": "foobar", "message": "中国"}, j)
+}
+
+func TestExtractUnsupportedContentType(t *testing.T) {
+	req := fasthttp.AcquireRequest()
+	defer fasthttp.ReleaseRequest(req)
+
+	req.Header.SetMethod("image/png")
+	req.SetBody([]byte(`{"name":"foobar"}`))
+	f, j := extractBodyAsParams(req)
+	assert.Nil(t, f)
+	assert.Nil(t, j)
 }

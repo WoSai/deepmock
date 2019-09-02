@@ -6,8 +6,30 @@ import (
 	"html/template"
 	"testing"
 
+	"github.com/qastub/deepmock/types"
+
 	"github.com/stretchr/testify/assert"
 )
+
+func TestNewResponseTemplate(t *testing.T) {
+	res := &types.ResourceResponseTemplate{
+		IsTemplate:     true,
+		Header:         types.ResourceHeaderTemplate{"Content-Type": "application/json", "Authorization": "123123"},
+		StatusCode:     500,
+		Body:           "hello world",
+		B64EncodedBody: "aGVsbG8gZm9vYmFyIQ==",
+	}
+	rt, err := newResponseTemplate(res)
+	assert.Nil(t, err)
+	assert.EqualValues(t, res, rt.raw)
+	assert.True(t, rt.isTemplate)
+	assert.True(t, rt.isBinData)
+	assert.Equal(t, rt.body, []byte("hello foobar!"))
+	assert.NotNil(t, rt.htmlTemplate)
+	assert.Equal(t, rt.header.StatusCode(), 500)
+	assert.Equal(t, rt.header.ContentType(), []byte("application/json"))
+	assert.Equal(t, rt.header.Peek("Authorization"), []byte("123123"))
+}
 
 func TestUUIDFunc(t *testing.T) {
 	text := `{{uuid}}`
