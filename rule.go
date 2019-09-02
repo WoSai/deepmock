@@ -93,7 +93,10 @@ func newRuleExecutor(res *types.ResourceRule) (*ruleExecutor, error) {
 	rm.raw = res.Request
 
 	// init variable
-	re.variable = ruleVariable(res.Variable)
+	re.variable = make(ruleVariable)
+	for k, v := range res.Variable {
+		re.variable[k] = v
+	}
 
 	// init weight
 	re.weightPicker = map[string]*weightingDice{}
