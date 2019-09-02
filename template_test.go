@@ -76,3 +76,21 @@ func TestGenRandstring(t *testing.T) {
 	assert.Nil(t, tmpl.Execute(buff, ctx))
 	assert.Equal(t, len(buff.String()), 8)
 }
+
+func TestVarNameWithDash(t *testing.T) {
+	p := struct {
+		Data map[string]interface{}
+	}{
+		Data: map[string]interface{}{"deepmock-version": "v1.0.0"},
+	}
+	tp, err := template.New("test").Parse("{{.Data.deepmock-version}}")
+	assert.NotNil(t, err)
+
+	tp, err = template.New("test").Parse(
+		`{{ $version := index .Data "deepmock-version"}}{{$version}}`)
+	assert.Nil(t, err)
+
+	buf := bytes.NewBuffer(nil)
+	assert.Nil(t, tp.Execute(buf, p))
+	assert.EqualValues(t, "v1.0.0", buf.String())
+}
