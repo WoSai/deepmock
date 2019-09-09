@@ -26,6 +26,7 @@ type (
 		variable            ruleVariable
 		weightPicker        weightingPicker
 		responseRegulations responseRegulationSet
+		version             int
 		mu                  sync.RWMutex
 	}
 
@@ -45,21 +46,20 @@ var (
 	defaultRuleManager *ruleManager
 )
 
-func newRequestMatcher(res *types.ResourceRequestMatcher) (*requestMatcher, error) {
-	if err := res.Check(); err != nil {
-		return nil, err
+func newRequestMatcher(path, method string) (*requestMatcher, error) {
+	if path == "" || method == "" {
+		return nil, errors.New("miss required field: path or method")
 	}
-	re, err := regexp.Compile(res.Path)
+	re, err := regexp.Compile(path)
 	if err != nil {
-		Logger.Error("failed to compile regular expression", zap.String("path", res.Path), zap.Error(err))
+		Logger.Error("failed to compile regular expression", zap.String("path", path), zap.Error(err))
 		return nil, err
 	}
 
 	rm := &requestMatcher{
-		path:   []byte(res.Path),
-		method: bytes.ToUpper([]byte(res.Method)),
+		path:   []byte(path),
+		method: bytes.ToUpper([]byte(method)),
 		re:     re,
-		raw:    res,
 	}
 	rm.id = genID(rm.path, rm.method)
 	return rm, nil
@@ -72,10 +72,6 @@ func (rm *requestMatcher) match(path, method []byte) bool {
 	return rm.re.Match(path)
 }
 
-func (rm *requestMatcher) wrap() *types.ResourceRequestMatcher {
-	return rm.raw
-}
-
 func (rc ruleVariable) patch(res types.ResourceVariable) {
 	for k, v := range res {
 		rc[k] = v
@@ -85,12 +81,11 @@ func (rc ruleVariable) patch(res types.ResourceVariable) {
 func newRuleExecutor(res *types.ResourceRule) (*ruleExecutor, error) {
 	re := new(ruleExecutor)
 	// init requestMatcher
-	rm, err := newRequestMatcher(res.Request)
+	rm, err := newRequestMatcher(res.Path, res.Method)
 	if err != nil {
 		return nil, err
 	}
 	re.requestMatcher = rm
-	rm.raw = res.Request
 
 	// init variable
 	re.variable = make(ruleVariable)
@@ -132,7 +127,8 @@ func (re *ruleExecutor) wrap() *types.ResourceRule {
 
 	rule := new(types.ResourceRule)
 	rule.ID = re.id()
-	rule.Request = re.requestMatcher.wrap()
+	rule.Path = string(re.requestMatcher.path)
+	rule.Method = string(re.requestMatcher.method)
 	rule.Variable = types.ResourceVariable(re.variable)
 	rule.Weight = re.weightPicker.wrap()
 	rule.Responses = make(types.ResourceResponseRegulationSet, len(re.responseRegulations))
@@ -248,7 +244,7 @@ func (rm *ruleManager) updateRule(rule *types.ResourceRule) (*ruleExecutor, erro
 	_, ok := rm.executors[re.id()]
 	if !ok {
 		rm.mu.Unlock()
-		Logger.Error("the rule to update is not exists", zap.String("path", rule.Request.Path), zap.String("method", rule.Request.Method))
+		Logger.Error("the rule to update is not exists", zap.String("path", rule.Path), zap.String("method", rule.Method))
 		return nil, errors.New("the rule to update is not exists")
 	}
 	rm.executors[re.id()] = re
@@ -271,7 +267,7 @@ func (rm *ruleManager) createRuleInto(rule *types.ResourceRule, m map[string]*ru
 	}
 	_, ok := rm.executors[re.id()]
 	if ok {
-		Logger.Error("failed to create duplicated rule", zap.String("path", rule.Request.Path), zap.String("method", rule.Request.Method))
+		Logger.Error("failed to create duplicated rule", zap.String("path", rule.Path), zap.String("method", rule.Method))
 		return nil, errors.New("found duplicated rule")
 	}
 	m[re.id()] = re
@@ -368,8 +364,4 @@ func (rm *ruleManager) reset() {
 	rm.cache.Purge()
 
 	rm.mu.Unlock()
-}
-
-func init() {
-	defaultRuleManager = newRuleManager()
 }

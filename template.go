@@ -137,12 +137,3 @@ func RegisterTemplateFunc(name string, f interface{}) error {
 	defaultTemplateFuncs[name] = f
 	return nil
 }
-
-func init() {
-	defaultTemplateFuncs = make(template.FuncMap)
-	_ = RegisterTemplateFunc("uuid", genUUID)
-	_ = RegisterTemplateFunc("timestamp", currentTimestamp)
-	_ = RegisterTemplateFunc("date", formatDate)
-	_ = RegisterTemplateFunc("plus", plus)
-	_ = RegisterTemplateFunc("rand_string", genRandomString)
-}

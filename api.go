@@ -27,7 +27,7 @@ func parsePathVar(path, uri []byte) string {
 }
 
 // HandleMockedAPI 处理所有mock api
-func HandleMockedAPI(ctx *fasthttp.RequestCtx, next func(error)) {
+func HandleMockedAPI(ctx *fasthttp.RequestCtx, _ func(error)) {
 	re, founded, _ := defaultRuleManager.findExecutor(ctx.Request.URI().Path(), ctx.Request.Header.Method())
 	if !founded {
 		res := new(types.CommonResource)
@@ -80,7 +80,7 @@ func render(re *ruleExecutor, rt *responseTemplate, ctx *fasthttp.RequestCtx) {
 }
 
 // HandleCreateRule 创建规则接口
-func HandleCreateRule(ctx *fasthttp.RequestCtx, next func(error)) {
+func HandleCreateRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 	rule := new(types.ResourceRule)
 	if err := bindBody(ctx, rule); err != nil {
 		return
@@ -95,7 +95,7 @@ func HandleCreateRule(ctx *fasthttp.RequestCtx, next func(error)) {
 }
 
 // HandleGetRule 根据rule id获取规则
-func HandleGetRule(ctx *fasthttp.RequestCtx, next func(error)) {
+func HandleGetRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 	ruleID := parsePathVar(apiGetRulePath, ctx.RequestURI())
 
 	re, exists := defaultRuleManager.getRuleByID(ruleID)
@@ -111,7 +111,7 @@ func HandleGetRule(ctx *fasthttp.RequestCtx, next func(error)) {
 }
 
 // HandleDeleteRule 根据rule id删除规则
-func HandleDeleteRule(ctx *fasthttp.RequestCtx, next func(error)) {
+func HandleDeleteRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 	res := new(types.ResourceRule)
 	if err := bindBody(ctx, res); err != nil {
 		return
@@ -122,7 +122,7 @@ func HandleDeleteRule(ctx *fasthttp.RequestCtx, next func(error)) {
 }
 
 // HandleUpdateRule 根据rule id更新目前规则，如果规则不存在，不会新建
-func HandleUpdateRule(ctx *fasthttp.RequestCtx, next func(error)) {
+func HandleUpdateRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 	res := new(types.ResourceRule)
 	if err := bindBody(ctx, res); err != nil {
 		return
@@ -137,7 +137,7 @@ func HandleUpdateRule(ctx *fasthttp.RequestCtx, next func(error)) {
 }
 
 // HandlePatchRule 根据rule id更新目前规则，与put的区别在于：put需要传入完整的rule对象，而patch只需要传入更新部分即可
-func HandlePatchRule(ctx *fasthttp.RequestCtx, next func(error)) {
+func HandlePatchRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 	res := new(types.ResourceRule)
 	if err := bindBody(ctx, res); err != nil {
 		return
@@ -152,7 +152,7 @@ func HandlePatchRule(ctx *fasthttp.RequestCtx, next func(error)) {
 }
 
 // HandleExportRules 导出当前所有规则
-func HandleExportRules(ctx *fasthttp.RequestCtx, next func(error)) {
+func HandleExportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
 	re := defaultRuleManager.exportRules()
 	rules := make([]*types.ResourceRule, len(re))
 	for k, v := range re {
@@ -163,7 +163,7 @@ func HandleExportRules(ctx *fasthttp.RequestCtx, next func(error)) {
 }
 
 // HandleImportRules 导入规则，将会清空目前所有规则
-func HandleImportRules(ctx *fasthttp.RequestCtx, next func(error)) {
+func HandleImportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
 	var rules []*types.ResourceRule
 	if err := bindBody(ctx, &rules); err != nil {
 		return
@@ -176,7 +176,7 @@ func HandleImportRules(ctx *fasthttp.RequestCtx, next func(error)) {
 	renderSuccessfulResponse(&ctx.Response, nil)
 }
 
-func HandleHelp(ctx *fasthttp.RequestCtx, next func(error)) {
+func HandleHelp(ctx *fasthttp.RequestCtx, _ func(error)) {
 
 }
 

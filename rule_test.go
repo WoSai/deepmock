@@ -9,19 +9,19 @@ import (
 )
 
 func TestRequestMatch_Match(t *testing.T) {
-	rm, err := newRequestMatcher(&types.ResourceRequestMatcher{Path: "/", Method: "Get"})
+	rm, err := newRequestMatcher("/", "GET")
 	assert.Nil(t, err)
 	assert.True(t, rm.match([]byte("/"), []byte("GET")))
 
-	rm, err = newRequestMatcher(&types.ResourceRequestMatcher{Method: "GET", Path: "/api/v1/create"})
+	rm, err = newRequestMatcher("/api/v1/create", "GET")
 	assert.Nil(t, err)
 	assert.False(t, rm.match([]byte("/api/v1/create"), []byte("POST")))
 
-	rm, err = newRequestMatcher(&types.ResourceRequestMatcher{Method: "GET", Path: "/api/v1/create"})
+	rm, err = newRequestMatcher("/api/v1/create", "GET")
 	assert.Nil(t, err)
 	assert.False(t, rm.match([]byte("/api/v1/update"), []byte("GET")))
 
-	rm, err = newRequestMatcher(&types.ResourceRequestMatcher{Method: "GET", Path: "/api/v[0-9]+/create"})
+	rm, err = newRequestMatcher("/api/v[0-9]+/create", "GET")
 	assert.Nil(t, err)
 	assert.True(t, rm.match([]byte("/api/v10/create"), []byte("GET")))
 	assert.False(t, rm.match([]byte("/api/va/create"), []byte("GET")))
@@ -29,7 +29,8 @@ func TestRequestMatch_Match(t *testing.T) {
 
 func TestRuleExecutor_New(t *testing.T) {
 	rule := &types.ResourceRule{
-		Request: &types.ResourceRequestMatcher{Method: "GET", Path: "/api/v1/store/create"},
+		Path:   "/api/v1/store/create",
+		Method: "GET",
 		Responses: types.ResourceResponseRegulationSet{
 			&types.ResourceResponseRegulation{IsDefault: true, Response: &types.ResourceResponseTemplate{Body: `{"version": 1}`}},
 		},
@@ -41,7 +42,8 @@ func TestRuleExecutor_New(t *testing.T) {
 
 func TestRuleExecutor_Wrap(t *testing.T) {
 	rule := &types.ResourceRule{
-		Request:  &types.ResourceRequestMatcher{Method: "GET", Path: "/api/v1/store/create"},
+		Method:   "GET",
+		Path:     "/api/v1/store/create",
 		Variable: types.ResourceVariable{"version": 1, "name": "foobar"},
 		Weight:   types.ResourceWeight{"return_code": types.ResourceWeightingFactor{"success": 1, "failed": 2}, "error_code": types.ResourceWeightingFactor{"invalid_name": 100}},
 		Responses: types.ResourceResponseRegulationSet{
@@ -63,7 +65,8 @@ func TestRuleExecutor_Wrap(t *testing.T) {
 
 func TestRuleExecutor_Path(t *testing.T) {
 	rule := &types.ResourceRule{
-		Request:  &types.ResourceRequestMatcher{Path: "/api/v1/rule/[0-9]+", Method: "GET"},
+		Path:     "/api/v1/rule/[0-9]+",
+		Method:   "GET",
 		Variable: types.ResourceVariable{"version": 1},
 		Weight:   types.ResourceWeight{"code": types.ResourceWeightingFactor{"S": 1, "F": 2}},
 		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
@@ -112,7 +115,8 @@ func TestRuleManager_FindExecutor(t *testing.T) {
 	rm := newRuleManager()
 
 	r1 := &types.ResourceRule{
-		Request: &types.ResourceRequestMatcher{Path: "/api/v1/rule/[0-9]+", Method: "GET"},
+		Path:   "/api/v1/rule/[0-9]+",
+		Method: "GET",
 		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "hello rule"},
@@ -120,7 +124,8 @@ func TestRuleManager_FindExecutor(t *testing.T) {
 	}
 
 	r2 := &types.ResourceRule{
-		Request: &types.ResourceRequestMatcher{Path: "/api/v1/store/[0-9]+", Method: "GET"},
+		Path:   "/api/v1/store/[0-9]+",
+		Method: "GET",
 		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "hello store"},
@@ -158,7 +163,8 @@ func TestRuleManager_FindExecutor(t *testing.T) {
 func TestRuleManager_PathRule(t *testing.T) {
 	rm := newRuleManager()
 	r := &types.ResourceRule{
-		Request: &types.ResourceRequestMatcher{Path: "/api/v1/rule/[0-9]+", Method: "GET"},
+		Path:   "/api/v1/rule/[0-9]+",
+		Method: "GET",
 		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "hello rule"},
@@ -178,7 +184,8 @@ func TestRuleManager_UpdateRule(t *testing.T) {
 	rm := newRuleManager()
 
 	r := &types.ResourceRule{
-		Request: &types.ResourceRequestMatcher{Path: "/api/v1/rule/[0-9]+", Method: "GET"},
+		Path:   "/api/v1/rule/[0-9]+",
+		Method: "GET",
 		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "hello rule"},
@@ -197,13 +204,13 @@ func TestRuleManager_UpdateRule(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, re1)
 
-	r.Request.Method = "POST"
+	r.Method = "POST"
 	_, err = rm.updateRule(r)
 	assert.Error(t, err, "the rule to update is not exists")
 	re3, _ := rm.getRuleByID(re1.id())
 	assert.Equal(t, re1, re3)
 
-	r.Request.Method = "GET"
+	r.Method = "GET"
 	r.Responses = append(r.Responses, &types.ResourceResponseRegulation{
 		Filter:   &types.ResourceFilter{Body: types.ResourceBodyFilterParameters{"mode": "always_true"}},
 		Response: &types.ResourceResponseTemplate{Body: "foobar"}})
@@ -216,7 +223,8 @@ func BenchmarkRuleManager_DataRace(b *testing.B) {
 	rm := newRuleManager()
 
 	r1 := &types.ResourceRule{
-		Request: &types.ResourceRequestMatcher{Path: "/api/v1/rule/[0-9]+", Method: "GET"},
+		Path:   "/api/v1/rule/[0-9]+",
+		Method: "GET",
 		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "hello rule"},
@@ -224,7 +232,8 @@ func BenchmarkRuleManager_DataRace(b *testing.B) {
 	}
 
 	r2 := &types.ResourceRule{
-		Request: &types.ResourceRequestMatcher{Path: "/api/v1/store/[0-9]+", Method: "GET"},
+		Path:   "/api/v1/store/[0-9]+",
+		Method: "GET",
 		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "hello store"},

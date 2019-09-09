@@ -1,6 +1,14 @@
 package types
 
-import "errors"
+import (
+	"errors"
+
+	jsoniter "github.com/json-iterator/go"
+)
+
+var (
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
+)
 
 type (
 	CommonResource struct {
@@ -16,7 +24,8 @@ type (
 
 	ResourceRule struct {
 		ID        string                        `json:"id,omitempty"`
-		Request   *ResourceRequestMatcher       `json:"request,omitempty"`
+		Path      string                        `json:"path,omitempty"`
+		Method    string                        `json:"method,omitempty"`
 		Variable  ResourceVariable              `json:"variable,omitempty"`
 		Weight    ResourceWeight                `json:"weight,omitempty"`
 		Responses ResourceResponseRegulationSet `json:"responses,omitempty"`
@@ -59,17 +68,12 @@ type (
 	ResourceResponseRegulationSet []*ResourceResponseRegulation
 )
 
-func (rrm *ResourceRequestMatcher) Check() error {
-	if rrm == nil {
-		return errors.New("missing request matching")
-	}
-	if rrm.Path == "" {
-		return errors.New("missing path")
-	}
-	if rrm.Method == "" {
-		return errors.New("missing http method")
-	}
-	return nil
+func (v *ResourceVariable) UnmarshalByte(data []byte) error {
+	return json.Unmarshal(data, v)
+}
+
+func (w *ResourceWeight) UnmarshalByte(data []byte) error {
+	return json.Unmarshal(data, w)
 }
 
 func (rmr *ResourceResponseRegulation) Check() error {
@@ -97,6 +101,10 @@ func (mrs ResourceResponseRegulationSet) Check() error {
 		return errors.New("no default response or provided more than one")
 	}
 	return nil
+}
+
+func (mrs *ResourceResponseRegulationSet) UnmarshalByte(data []byte) error {
+	return json.Unmarshal(data, mrs)
 }
 
 func (hfp ResourceHeaderFilterParameters) Check() error {
