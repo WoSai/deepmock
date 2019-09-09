@@ -2,6 +2,7 @@ package types
 
 import (
 	"errors"
+	"time"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -23,12 +24,16 @@ type (
 	}
 
 	ResourceRule struct {
-		ID        string                        `json:"id,omitempty"`
-		Path      string                        `json:"path,omitempty"`
-		Method    string                        `json:"method,omitempty"`
-		Variable  ResourceVariable              `json:"variable,omitempty"`
-		Weight    ResourceWeight                `json:"weight,omitempty"`
-		Responses ResourceResponseRegulationSet `json:"responses,omitempty"`
+		ID           string                         `json:"id,omitempty" ddb:"id"`
+		Path         string                         `json:"path,omitempty" ddb:"path"`
+		Method       string                         `json:"method,omitempty" ddb:"method"`
+		Variable     *ResourceVariable              `json:"variable,omitempty" ddb:"variable"`
+		Weight       *ResourceWeight                `json:"weight,omitempty" ddb:"weight"`
+		Responses    *ResourceResponseRegulationSet `json:"responses,omitempty" ddb:"responses"`
+		Version      int                            `json:"-" ddb:"version"`
+		CreatedTime  time.Time                      `json:"-" ddb:"ctime"`
+		ModifiedTime time.Time                      `json:"-" ddb:"mtime"`
+		Disabled     bool                           `json:"-" ddb:"disabled"`
 	}
 
 	ResourceResponseRegulation struct {
@@ -68,12 +73,16 @@ type (
 	ResourceResponseRegulationSet []*ResourceResponseRegulation
 )
 
-func (v *ResourceVariable) UnmarshalByte(data []byte) error {
-	return json.Unmarshal(data, v)
+func (rv *ResourceVariable) UnmarshalByte(data []byte) error {
+	return json.Unmarshal(data, rv)
 }
 
-func (w *ResourceWeight) UnmarshalByte(data []byte) error {
-	return json.Unmarshal(data, w)
+func (rw *ResourceWeight) UnmarshalByte(data []byte) error {
+	return json.Unmarshal(data, rw)
+}
+
+func (rrr *ResourceResponseRegulationSet) UnmarshalByte(data []byte) error {
+	return json.Unmarshal(data, rrr)
 }
 
 func (rmr *ResourceResponseRegulation) Check() error {
@@ -101,10 +110,6 @@ func (mrs ResourceResponseRegulationSet) Check() error {
 		return errors.New("no default response or provided more than one")
 	}
 	return nil
-}
-
-func (mrs *ResourceResponseRegulationSet) UnmarshalByte(data []byte) error {
-	return json.Unmarshal(data, mrs)
 }
 
 func (hfp ResourceHeaderFilterParameters) Check() error {

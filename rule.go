@@ -89,27 +89,33 @@ func newRuleExecutor(res *types.ResourceRule) (*ruleExecutor, error) {
 
 	// init variable
 	re.variable = make(ruleVariable)
-	for k, v := range res.Variable {
-		re.variable[k] = v
+	if res.Variable != nil {
+		for k, v := range *res.Variable {
+			re.variable[k] = v
+		}
 	}
 
 	// init weight
 	re.weightPicker = map[string]*weightingDice{}
-	for k, v := range res.Weight {
-		re.weightPicker[k] = newWeighingDice(v)
+	if res.Weight != nil {
+		for k, v := range *res.Weight {
+			re.weightPicker[k] = newWeighingDice(v)
+		}
 	}
 
 	// init responseRegulation
-	if err := res.Responses.Check(); err != nil {
-		return nil, err
-	}
-	re.responseRegulations = make([]*responseRegulation, len(res.Responses))
-	for i, reg := range res.Responses {
-		rr, err := newResponseRegulation(reg)
-		if err != nil {
+	if res.Responses != nil {
+		if err := res.Responses.Check(); err != nil {
 			return nil, err
 		}
-		re.responseRegulations[i] = rr
+		re.responseRegulations = make([]*responseRegulation, len(*res.Responses))
+		for i, reg := range *res.Responses {
+			rr, err := newResponseRegulation(reg)
+			if err != nil {
+				return nil, err
+			}
+			re.responseRegulations[i] = rr
+		}
 	}
 	return re, nil
 }
@@ -129,12 +135,15 @@ func (re *ruleExecutor) wrap() *types.ResourceRule {
 	rule.ID = re.id()
 	rule.Path = string(re.requestMatcher.path)
 	rule.Method = string(re.requestMatcher.method)
-	rule.Variable = types.ResourceVariable(re.variable)
-	rule.Weight = re.weightPicker.wrap()
-	rule.Responses = make(types.ResourceResponseRegulationSet, len(re.responseRegulations))
+	va := types.ResourceVariable(re.variable)
+	rule.Variable = &va
+	w := re.weightPicker.wrap()
+	rule.Weight = &w
+	rs := make(types.ResourceResponseRegulationSet, len(re.responseRegulations))
 	for k, v := range re.responseRegulations {
-		rule.Responses[k] = v.wrap()
+		rs[k] = v.wrap()
 	}
+	rule.Responses = &rs
 
 	re.mu.RUnlock()
 	return rule
@@ -147,8 +156,8 @@ func (re *ruleExecutor) patch(res *types.ResourceRule) error {
 		if err := res.Responses.Check(); err != nil {
 			return err
 		}
-		rs := make([]*responseRegulation, len(res.Responses))
-		for k, v := range res.Responses {
+		rs := make([]*responseRegulation, len(*res.Responses))
+		for k, v := range *res.Responses {
 			rr, err := newResponseRegulation(v)
 			if err != nil {
 				return err
@@ -159,11 +168,11 @@ func (re *ruleExecutor) patch(res *types.ResourceRule) error {
 	}
 
 	if res.Variable != nil {
-		re.variable.patch(res.Variable)
+		re.variable.patch(*res.Variable)
 	}
 
 	if res.Weight != nil {
-		re.weightPicker.patch(res.Weight)
+		re.weightPicker.patch(*res.Weight)
 	}
 
 	re.mu.Unlock()

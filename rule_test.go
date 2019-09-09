@@ -31,7 +31,7 @@ func TestRuleExecutor_New(t *testing.T) {
 	rule := &types.ResourceRule{
 		Path:   "/api/v1/store/create",
 		Method: "GET",
-		Responses: types.ResourceResponseRegulationSet{
+		Responses: &types.ResourceResponseRegulationSet{
 			&types.ResourceResponseRegulation{IsDefault: true, Response: &types.ResourceResponseTemplate{Body: `{"version": 1}`}},
 		},
 	}
@@ -44,9 +44,9 @@ func TestRuleExecutor_Wrap(t *testing.T) {
 	rule := &types.ResourceRule{
 		Method:   "GET",
 		Path:     "/api/v1/store/create",
-		Variable: types.ResourceVariable{"version": 1, "name": "foobar"},
-		Weight:   types.ResourceWeight{"return_code": types.ResourceWeightingFactor{"success": 1, "failed": 2}, "error_code": types.ResourceWeightingFactor{"invalid_name": 100}},
-		Responses: types.ResourceResponseRegulationSet{
+		Variable: &types.ResourceVariable{"version": 1, "name": "foobar"},
+		Weight:   &types.ResourceWeight{"return_code": types.ResourceWeightingFactor{"success": 1, "failed": 2}, "error_code": types.ResourceWeightingFactor{"invalid_name": 100}},
+		Responses: &types.ResourceResponseRegulationSet{
 			&types.ResourceResponseRegulation{IsDefault: true, Filter: nil, Response: &types.ResourceResponseTemplate{Body: `{"version": 1}`}},
 		},
 	}
@@ -67,9 +67,9 @@ func TestRuleExecutor_Path(t *testing.T) {
 	rule := &types.ResourceRule{
 		Path:     "/api/v1/rule/[0-9]+",
 		Method:   "GET",
-		Variable: types.ResourceVariable{"version": 1},
-		Weight:   types.ResourceWeight{"code": types.ResourceWeightingFactor{"S": 1, "F": 2}},
-		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
+		Variable: &types.ResourceVariable{"version": 1},
+		Weight:   &types.ResourceWeight{"code": types.ResourceWeightingFactor{"S": 1, "F": 2}},
+		Responses: &types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "hello rule"},
 		}},
@@ -80,8 +80,8 @@ func TestRuleExecutor_Path(t *testing.T) {
 
 	p1 := &types.ResourceRule{
 		ID:       re.id(),
-		Variable: types.ResourceVariable{"version": 2},
-		Weight: types.ResourceWeight{
+		Variable: &types.ResourceVariable{"version": 2},
+		Weight: &types.ResourceWeight{
 			"code":   types.ResourceWeightingFactor{"F": 3},
 			"result": types.ResourceWeightingFactor{"SUCCESS": 0, "FAILED": 10}},
 	}
@@ -89,26 +89,27 @@ func TestRuleExecutor_Path(t *testing.T) {
 
 	rule = re.wrap()
 	assert.EqualValues(t,
-		rule.Weight,
+		*rule.Weight,
 		types.ResourceWeight{
 			"code":   types.ResourceWeightingFactor{"S": 1, "F": 3},
 			"result": types.ResourceWeightingFactor{"SUCCESS": 0, "FAILED": 10},
 		})
 
 	assert.EqualValues(t,
-		rule.Variable,
+		*rule.Variable,
 		types.ResourceVariable{"version": 2})
 
 	p2 := &types.ResourceRule{
 		ID: re.id(),
-		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
+		Responses: &types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "foobar"},
 		}},
 	}
 
 	assert.Nil(t, re.patch(p2))
-	assert.Equal(t, re.wrap().Responses[0].Response.Body, "foobar")
+	rs := *re.wrap().Responses
+	assert.Equal(t, rs[0].Response.Body, "foobar")
 }
 
 func TestRuleManager_FindExecutor(t *testing.T) {
@@ -117,7 +118,7 @@ func TestRuleManager_FindExecutor(t *testing.T) {
 	r1 := &types.ResourceRule{
 		Path:   "/api/v1/rule/[0-9]+",
 		Method: "GET",
-		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
+		Responses: &types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "hello rule"},
 		}},
@@ -126,7 +127,7 @@ func TestRuleManager_FindExecutor(t *testing.T) {
 	r2 := &types.ResourceRule{
 		Path:   "/api/v1/store/[0-9]+",
 		Method: "GET",
-		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
+		Responses: &types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "hello store"},
 		}},
@@ -165,7 +166,7 @@ func TestRuleManager_PathRule(t *testing.T) {
 	r := &types.ResourceRule{
 		Path:   "/api/v1/rule/[0-9]+",
 		Method: "GET",
-		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
+		Responses: &types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "hello rule"},
 		}},
@@ -186,7 +187,7 @@ func TestRuleManager_UpdateRule(t *testing.T) {
 	r := &types.ResourceRule{
 		Path:   "/api/v1/rule/[0-9]+",
 		Method: "GET",
-		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
+		Responses: &types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "hello rule"},
 		}},
@@ -211,7 +212,7 @@ func TestRuleManager_UpdateRule(t *testing.T) {
 	assert.Equal(t, re1, re3)
 
 	r.Method = "GET"
-	r.Responses = append(r.Responses, &types.ResourceResponseRegulation{
+	*r.Responses = append(*r.Responses, &types.ResourceResponseRegulation{
 		Filter:   &types.ResourceFilter{Body: types.ResourceBodyFilterParameters{"mode": "always_true"}},
 		Response: &types.ResourceResponseTemplate{Body: "foobar"}})
 	re4, err := rm.updateRule(r)
@@ -225,7 +226,7 @@ func BenchmarkRuleManager_DataRace(b *testing.B) {
 	r1 := &types.ResourceRule{
 		Path:   "/api/v1/rule/[0-9]+",
 		Method: "GET",
-		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
+		Responses: &types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "hello rule"},
 		}},
@@ -234,7 +235,7 @@ func BenchmarkRuleManager_DataRace(b *testing.B) {
 	r2 := &types.ResourceRule{
 		Path:   "/api/v1/store/[0-9]+",
 		Method: "GET",
-		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
+		Responses: &types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "hello store"},
 		}},
@@ -247,9 +248,9 @@ func BenchmarkRuleManager_DataRace(b *testing.B) {
 
 	patch := &types.ResourceRule{
 		ID:       re1.id(),
-		Variable: types.ResourceVariable{"version": 1},
-		Weight:   types.ResourceWeight{"code": types.ResourceWeightingFactor{"S": 1, "F": 2}},
-		Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
+		Variable: &types.ResourceVariable{"version": 1},
+		Weight:   &types.ResourceWeight{"code": types.ResourceWeightingFactor{"S": 1, "F": 2}},
+		Responses: &types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 			IsDefault: true,
 			Response:  &types.ResourceResponseTemplate{Body: "hello patch"},
 		}},
