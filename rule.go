@@ -5,6 +5,7 @@ import (
 	"errors"
 	"regexp"
 	"sync"
+	"time"
 
 	"github.com/didi/gendry/builder"
 	"github.com/didi/gendry/scanner"
@@ -386,12 +387,14 @@ func (rm *ruleManager) importFromDatabase() error {
 		toDelete[v.id()] = v
 	}
 
+outside:
 	for _, rule := range rules {
 		if r, exists := toDelete[rule.ID]; exists {
 			delete(toDelete, rule.ID)
 			if r.version == rule.Version { // 版本一致，不用更新
-				continue
+				continue outside
 			}
+			Logger.Info("find new version data", zap.String("id", rule.ID), zap.Int("version", rule.Version))
 			if _, err := rm.updateRule(rule); err != nil {
 				Logger.Error("occur error on update rule", zap.Error(err))
 				return err
@@ -418,4 +421,16 @@ func (rm *ruleManager) reset() {
 
 	rm.cache.Purge()
 	rm.mu.Unlock()
+}
+
+func init() {
+	// create default rule manager
+	defaultRuleManager = newRuleManager()
+	go func(rm *ruleManager) {
+		time.Sleep(5 * time.Second)
+		for {
+			_ = rm.importFromDatabase()
+			time.Sleep(500 * time.Millisecond)
+		}
+	}(defaultRuleManager)
 }

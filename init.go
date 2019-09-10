@@ -40,17 +40,6 @@ func init() {
 
 	Logger.Info("deepmock logger is initialized")
 
-	// create default rule manager
-	defaultRuleManager = newRuleManager()
-	go func(rm *ruleManager) {
-		time.Sleep(5 * time.Second)
-		for {
-			Logger.Info("refresh rules from database")
-			_ = rm.importFromDatabase()
-			time.Sleep(500 * time.Millisecond)
-		}
-	}(defaultRuleManager)
-
 	// create build-in template functions
 	defaultTemplateFuncs = make(template.FuncMap)
 	_ = RegisterTemplateFunc("uuid", genUUID)
