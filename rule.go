@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"sync"
 
+	"github.com/didi/gendry/builder"
+	"github.com/didi/gendry/scanner"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/qastub/deepmock/types"
 	"github.com/valyala/fasthttp"
@@ -117,6 +119,7 @@ func newRuleExecutor(res *types.ResourceRule) (*ruleExecutor, error) {
 			re.responseRegulations[i] = rr
 		}
 	}
+	re.version = res.Version
 	return re, nil
 }
 
@@ -363,6 +366,49 @@ func (rm *ruleManager) importRules(rules ...*types.ResourceRule) error {
 	return nil
 }
 
+func (rm *ruleManager) importFromDatabase() error {
+	query, values, _ := builder.BuildSelect(storage.table, nil, []string{"*"})
+	rows, err := storage.buildConnection().Query(query, values...)
+	if err != nil {
+		Logger.Error("failed to find records from database", zap.Error(err))
+		return err
+	}
+	var rules []*types.ResourceRule
+	err = scanner.Scan(rows, &rules)
+	if err != nil {
+		Logger.Error("failed to scan records", zap.Error(err))
+		return err
+	}
+
+	executors := rm.exportRules()
+	toDelete := make(map[string]*ruleExecutor)
+	for _, v := range executors {
+		toDelete[v.id()] = v
+	}
+
+	for _, rule := range rules {
+		if r, exists := toDelete[rule.ID]; exists {
+			delete(toDelete, rule.ID)
+			if r.version == rule.Version { // 版本一致，不用更新
+				continue
+			}
+			if _, err := rm.updateRule(rule); err != nil {
+				Logger.Error("occur error on update rule", zap.Error(err))
+				return err
+			}
+		} else { // 内存缓存中不存在，该记录为新记录，创建
+			_, err := rm.createRule(rule)
+			return err
+		}
+	}
+
+	// toDelete中还存在的，即为已经删除的数据
+	for _, v := range toDelete {
+		rm.deleteRule(&types.ResourceRule{ID: v.id()})
+	}
+	return nil
+}
+
 func (rm *ruleManager) reset() {
 	rm.mu.Lock()
 
@@ -371,6 +417,5 @@ func (rm *ruleManager) reset() {
 	}
 
 	rm.cache.Purge()
-
 	rm.mu.Unlock()
 }

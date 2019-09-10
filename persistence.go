@@ -51,9 +51,9 @@ const (
 // EnableRulePersistence 启用规则持久化
 func parseConnOption() connOption {
 	op := connOption{
-		Username: "vip_qa_gomock_rw",
-		Password: "gj&tXfT8W7u1$+AIM%Z*qco!hpCH",
-		Host:     "rm-8vbq2i8907zzf0i1a.mysql.zhangbei.rds.aliyuncs.com",
+		Username: "root",
+		Password: "123",
+		Host:     "localhost",
 		Port:     3306,
 		Database: "deepmock",
 	}
