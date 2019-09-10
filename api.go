@@ -86,28 +86,40 @@ func HandleCreateRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 		return
 	}
 
-	re, err := defaultRuleManager.createRule(rule)
+	//re, err := defaultRuleManager.createRule(rule)
+	//if err != nil {
+	//	renderFailedAPIResponse(&ctx.Response, err)
+	//	return
+	//}
+	//renderSuccessfulResponse(&ctx.Response, re.wrap())
+	err := storage.createRule(rule)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
-	renderSuccessfulResponse(&ctx.Response, re.wrap())
+	renderSuccessfulResponse(&ctx.Response, rule)
 }
 
 // HandleGetRule 根据rule id获取规则
 func HandleGetRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 	ruleID := parsePathVar(apiGetRulePath, ctx.RequestURI())
 
-	re, exists := defaultRuleManager.getRuleByID(ruleID)
-	var err error
-	if !exists {
-		err = errors.New("cannot found rule with id " + ruleID)
-	}
+	rule, err := storage.getRule(ruleID)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
-	renderSuccessfulResponse(&ctx.Response, re.wrap())
+	renderSuccessfulResponse(&ctx.Response, rule)
+	//re, exists := defaultRuleManager.getRuleByID(ruleID)
+	//var err error
+	//if !exists {
+	//	err = errors.New("cannot found rule with id " + ruleID)
+	//}
+	//if err != nil {
+	//	renderFailedAPIResponse(&ctx.Response, err)
+	//	return
+	//}
+	//renderSuccessfulResponse(&ctx.Response, re.wrap())
 }
 
 // HandleDeleteRule 根据rule id删除规则
@@ -117,7 +129,12 @@ func HandleDeleteRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 		return
 	}
 
-	defaultRuleManager.deleteRule(res)
+	//defaultRuleManager.deleteRule(res)
+	err := storage.delete(res)
+	if err != nil {
+		renderFailedAPIResponse(&ctx.Response, err)
+		return
+	}
 	renderSuccessfulResponse(&ctx.Response, nil)
 }
 
@@ -128,12 +145,19 @@ func HandleUpdateRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 		return
 	}
 
-	re, err := defaultRuleManager.updateRule(res)
+	rule, err := storage.put(res)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
-	renderSuccessfulResponse(&ctx.Response, re.wrap())
+	renderSuccessfulResponse(&ctx.Response, rule)
+
+	//re, err := defaultRuleManager.updateRule(res)
+	//if err != nil {
+	//	renderFailedAPIResponse(&ctx.Response, err)
+	//	return
+	//}
+	//renderSuccessfulResponse(&ctx.Response, re.wrap())
 }
 
 // HandlePatchRule 根据rule id更新目前规则，与put的区别在于：put需要传入完整的rule对象，而patch只需要传入更新部分即可
@@ -143,22 +167,33 @@ func HandlePatchRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 		return
 	}
 
-	re, err := defaultRuleManager.patchRule(res)
+	rule, err := storage.patch(res)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
-	renderSuccessfulResponse(&ctx.Response, re.wrap())
+	renderSuccessfulResponse(&ctx.Response, rule)
+	//re, err := defaultRuleManager.patchRule(res)
+	//if err != nil {
+	//	renderFailedAPIResponse(&ctx.Response, err)
+	//	return
+	//}
+	//renderSuccessfulResponse(&ctx.Response, re.wrap())
 }
 
 // HandleExportRules 导出当前所有规则
 func HandleExportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
-	re := defaultRuleManager.exportRules()
-	rules := make([]*types.ResourceRule, len(re))
-	for k, v := range re {
-		rules[k] = v.wrap()
-	}
+	//re := defaultRuleManager.exportRules()
+	//rules := make([]*types.ResourceRule, len(re))
+	//for k, v := range re {
+	//	rules[k] = v.wrap()
+	//}
 
+	rules, err := storage.export()
+	if err != nil {
+		renderFailedAPIResponse(&ctx.Response, err)
+		return
+	}
 	renderSuccessfulResponse(&ctx.Response, rules)
 }
 
@@ -168,16 +203,19 @@ func HandleImportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
 	if err := bindBody(ctx, &rules); err != nil {
 		return
 	}
-	err := defaultRuleManager.importRules(rules...)
+	//err := defaultRuleManager.importRules(rules...)
+	//if err != nil {
+	//	renderFailedAPIResponse(&ctx.Response, err)
+	//	return
+	//}
+	//renderSuccessfulResponse(&ctx.Response, nil)
+
+	err := storage.importRules(rules...)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
 	renderSuccessfulResponse(&ctx.Response, nil)
-}
-
-func HandleHelp(ctx *fasthttp.RequestCtx, _ func(error)) {
-
 }
 
 func bindBody(ctx *fasthttp.RequestCtx, v interface{}) error {

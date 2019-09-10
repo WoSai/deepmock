@@ -92,13 +92,23 @@ func (rmr *ResourceResponseRegulation) Check() error {
 	return nil
 }
 
-func (mrs ResourceResponseRegulationSet) Check() error {
+func (rr ResourceRule) Check() error {
+	if rr.Path == "" {
+		return errors.New("missing mock api path")
+	}
+	if rr.Method == "" {
+		return errors.New("missing mock api method")
+	}
+	return rr.Responses.Check()
+}
+
+func (rrr ResourceResponseRegulationSet) Check() error {
 	var d int
-	if mrs == nil {
+	if rrr == nil {
 		return errors.New("missing mock response")
 	}
 
-	for _, r := range mrs {
+	for _, r := range rrr {
 		if r.IsDefault {
 			d++
 		}
