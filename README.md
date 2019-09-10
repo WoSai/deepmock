@@ -21,10 +21,8 @@ docker run --name deepmock -p 16600:16600 -v `pwd`/log:/app/log -d qastub/deepmo
 ```bash
 curl -X POST http://127.0.0.1:16600/api/v1/rule \
   -d '{
-    "request": {
-        "path": "/whoami",
-        "method": "get"
-    },
+    "path": "/whoami",
+    "method": "get",
     "responses": [
         {
             "is_default": true,
@@ -65,10 +63,8 @@ curl -X POST http://127.0.0.1:16600/api/v1/rule \
 
 ```json
 {
-    "request": {
-        "path": "/(.*)",
-        "method": "get"
-    },
+    "path": "/(.*)",
+    "method": "get",
     "variable": {
         "value": "123",
         "name":"jack",
@@ -117,10 +113,8 @@ DeepMock支持返回二进制报文，只需要对二进制内容进行base64编
 
 ```json
 {
-    "request": {
-        "path": "/baidu_logo",
-        "method": "get"
-    },
+    "path": "/baidu_logo",
+    "method": "get",
     "responses": [
         {
             "is_default": true,
@@ -203,10 +197,8 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
     "data": [
         {
             "id": "bba079deaa2b97037694a89386616d88",
-            "request": {
-                "path": "/(.*)",
-                "method": "get"
-            },
+            "path": "/(.*)",
+            "method": "get",
             "responses": [
                 {
                     "is_default": true,
@@ -221,10 +213,8 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
         },
         {
             "id": "ccf2e319d7d51ff3a73b1c704d77b0c1",
-            "request": {
-                "path": "/whoami",
-                "method": "get"
-            },
+            "path": "/whoami",
+             "method": "get",
             "responses": [
                 {
                     "is_default": true,
@@ -249,10 +239,8 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
 [
     {
         "id": "bba079deaa2b97037694a89386616d88",
-        "request": {
-            "path": "/(.*)",
-            "method": "get"
-        },
+        "path": "/(.*)",
+        "method": "get",
         "responses": [
             {
                 "is_default": true,
@@ -267,10 +255,8 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
     },
     {
         "id": "ccf2e319d7d51ff3a73b1c704d77b0c1",
-        "request": {
-            "path": "/whoami",
-            "method": "get"
-        },
+        "path": "/whoami",
+        "method": "get",
         "responses": [
             {
                 "is_default": true,
@@ -419,10 +405,8 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
 
 ```json
 {
-	"request": {
-		"path": "/echo",
-		"method": "get"
-	},
+	"path": "/echo",
+	"method": "get",
 	"responses": [
 		{
 			"is_default": true,
@@ -430,7 +414,7 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
 				"body": "hello deepmock"
 			}
 		}
-		]
+	]
 }
 ```
 
