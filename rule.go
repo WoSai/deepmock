@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"sync"
 
+	"github.com/didi/gendry/builder"
+	"github.com/didi/gendry/scanner"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/qastub/deepmock/types"
 	"github.com/valyala/fasthttp"
@@ -26,6 +28,7 @@ type (
 		variable            ruleVariable
 		weightPicker        weightingPicker
 		responseRegulations responseRegulationSet
+		version             int
 		mu                  sync.RWMutex
 	}
 
@@ -45,21 +48,20 @@ var (
 	defaultRuleManager *ruleManager
 )
 
-func newRequestMatcher(res *types.ResourceRequestMatcher) (*requestMatcher, error) {
-	if err := res.Check(); err != nil {
-		return nil, err
+func newRequestMatcher(path, method string) (*requestMatcher, error) {
+	if path == "" || method == "" {
+		return nil, errors.New("miss required field: path or method")
 	}
-	re, err := regexp.Compile(res.Path)
+	re, err := regexp.Compile(path)
 	if err != nil {
-		Logger.Error("failed to compile regular expression", zap.String("path", res.Path), zap.Error(err))
+		Logger.Error("failed to compile regular expression", zap.String("path", path), zap.Error(err))
 		return nil, err
 	}
 
 	rm := &requestMatcher{
-		path:   []byte(res.Path),
-		method: bytes.ToUpper([]byte(res.Method)),
+		path:   []byte(path),
+		method: bytes.ToUpper([]byte(method)),
 		re:     re,
-		raw:    res,
 	}
 	rm.id = genID(rm.path, rm.method)
 	return rm, nil
@@ -72,10 +74,6 @@ func (rm *requestMatcher) match(path, method []byte) bool {
 	return rm.re.Match(path)
 }
 
-func (rm *requestMatcher) wrap() *types.ResourceRequestMatcher {
-	return rm.raw
-}
-
 func (rc ruleVariable) patch(res types.ResourceVariable) {
 	for k, v := range res {
 		rc[k] = v
@@ -85,34 +83,43 @@ func (rc ruleVariable) patch(res types.ResourceVariable) {
 func newRuleExecutor(res *types.ResourceRule) (*ruleExecutor, error) {
 	re := new(ruleExecutor)
 	// init requestMatcher
-	rm, err := newRequestMatcher(res.Request)
+	rm, err := newRequestMatcher(res.Path, res.Method)
 	if err != nil {
 		return nil, err
 	}
 	re.requestMatcher = rm
-	rm.raw = res.Request
 
 	// init variable
-	re.variable = ruleVariable(res.Variable)
+	re.variable = make(ruleVariable)
+	if res.Variable != nil {
+		for k, v := range *res.Variable {
+			re.variable[k] = v
+		}
+	}
 
 	// init weight
 	re.weightPicker = map[string]*weightingDice{}
-	for k, v := range res.Weight {
-		re.weightPicker[k] = newWeighingDice(v)
+	if res.Weight != nil {
+		for k, v := range *res.Weight {
+			re.weightPicker[k] = newWeighingDice(v)
+		}
 	}
 
 	// init responseRegulation
-	if err := res.Responses.Check(); err != nil {
-		return nil, err
-	}
-	re.responseRegulations = make([]*responseRegulation, len(res.Responses))
-	for i, reg := range res.Responses {
-		rr, err := newResponseRegulation(reg)
-		if err != nil {
+	if res.Responses != nil {
+		if err := res.Responses.Check(); err != nil {
 			return nil, err
 		}
-		re.responseRegulations[i] = rr
+		re.responseRegulations = make([]*responseRegulation, len(*res.Responses))
+		for i, reg := range *res.Responses {
+			rr, err := newResponseRegulation(reg)
+			if err != nil {
+				return nil, err
+			}
+			re.responseRegulations[i] = rr
+		}
 	}
+	re.version = res.Version
 	return re, nil
 }
 
@@ -129,13 +136,17 @@ func (re *ruleExecutor) wrap() *types.ResourceRule {
 
 	rule := new(types.ResourceRule)
 	rule.ID = re.id()
-	rule.Request = re.requestMatcher.wrap()
-	rule.Variable = types.ResourceVariable(re.variable)
-	rule.Weight = re.weightPicker.wrap()
-	rule.Responses = make(types.ResourceResponseRegulationSet, len(re.responseRegulations))
+	rule.Path = string(re.requestMatcher.path)
+	rule.Method = string(re.requestMatcher.method)
+	va := types.ResourceVariable(re.variable)
+	rule.Variable = &va
+	w := re.weightPicker.wrap()
+	rule.Weight = &w
+	rs := make(types.ResourceResponseRegulationSet, len(re.responseRegulations))
 	for k, v := range re.responseRegulations {
-		rule.Responses[k] = v.wrap()
+		rs[k] = v.wrap()
 	}
+	rule.Responses = &rs
 
 	re.mu.RUnlock()
 	return rule
@@ -148,8 +159,8 @@ func (re *ruleExecutor) patch(res *types.ResourceRule) error {
 		if err := res.Responses.Check(); err != nil {
 			return err
 		}
-		rs := make([]*responseRegulation, len(res.Responses))
-		for k, v := range res.Responses {
+		rs := make([]*responseRegulation, len(*res.Responses))
+		for k, v := range *res.Responses {
 			rr, err := newResponseRegulation(v)
 			if err != nil {
 				return err
@@ -160,11 +171,11 @@ func (re *ruleExecutor) patch(res *types.ResourceRule) error {
 	}
 
 	if res.Variable != nil {
-		re.variable.patch(res.Variable)
+		re.variable.patch(*res.Variable)
 	}
 
 	if res.Weight != nil {
-		re.weightPicker.patch(res.Weight)
+		re.weightPicker.patch(*res.Weight)
 	}
 
 	re.mu.Unlock()
@@ -207,29 +218,32 @@ func (rm *ruleManager) genCacheID(path, method []byte) string {
 	return string(method) + string(path)
 }
 
-func (rm *ruleManager) findExecutor(path, method []byte) (*ruleExecutor, bool) {
-	rm.mu.RLock()
-	defer rm.mu.RUnlock()
-
+func (rm *ruleManager) findExecutor(path, method []byte) (re *ruleExecutor, exists bool, cached bool) {
 	cacheID := rm.genCacheID(path, method)
+	Logger.Info(cacheID)
 	execID, cached := rm.cache.Get(cacheID)
 	if cached { // 缓存中存在时，不代表该ruleExecutor一定存在，有可能规则已经删除，但未清理缓存
+		rm.mu.RLock()
 		re, exists := rm.executors[execID.(string)]
+		rm.mu.RUnlock()
+
 		if exists {
-			return re, true
+			return re, true, true
 		}
 		rm.cache.Remove(cacheID)
-		return nil, false
+		return nil, false, false
 	}
 
+	rm.mu.RLock()
 	for id, exec := range rm.executors {
 		if exec.match(path, method) {
+			rm.mu.RUnlock()
 			rm.cache.Add(cacheID, id)
-			return exec, true
+			return exec, true, false
 		}
 	}
-
-	return nil, false
+	rm.mu.RUnlock()
+	return nil, false, false
 }
 
 func (rm *ruleManager) updateRule(rule *types.ResourceRule) (*ruleExecutor, error) {
@@ -242,7 +256,7 @@ func (rm *ruleManager) updateRule(rule *types.ResourceRule) (*ruleExecutor, erro
 	_, ok := rm.executors[re.id()]
 	if !ok {
 		rm.mu.Unlock()
-		Logger.Error("the rule to update is not exists", zap.String("path", rule.Request.Path), zap.String("method", rule.Request.Method))
+		Logger.Error("the rule to update is not exists", zap.String("path", rule.Path), zap.String("method", rule.Method))
 		return nil, errors.New("the rule to update is not exists")
 	}
 	rm.executors[re.id()] = re
@@ -265,7 +279,7 @@ func (rm *ruleManager) createRuleInto(rule *types.ResourceRule, m map[string]*ru
 	}
 	_, ok := rm.executors[re.id()]
 	if ok {
-		Logger.Error("failed to create duplicated rule", zap.String("path", rule.Request.Path), zap.String("method", rule.Request.Method))
+		Logger.Error("failed to create duplicated rule", zap.String("path", rule.Path), zap.String("method", rule.Method))
 		return nil, errors.New("found duplicated rule")
 	}
 	m[re.id()] = re
@@ -352,6 +366,49 @@ func (rm *ruleManager) importRules(rules ...*types.ResourceRule) error {
 	return nil
 }
 
+func (rm *ruleManager) importFromDatabase() error {
+	query, values, _ := builder.BuildSelect(storage.table, nil, []string{"*"})
+	rows, err := storage.buildConnection().Query(query, values...)
+	if err != nil {
+		Logger.Error("failed to find records from database", zap.Error(err))
+		return err
+	}
+	var rules []*types.ResourceRule
+	err = scanner.Scan(rows, &rules)
+	if err != nil {
+		Logger.Error("failed to scan records", zap.Error(err))
+		return err
+	}
+
+	executors := rm.exportRules()
+	toDelete := make(map[string]*ruleExecutor)
+	for _, v := range executors {
+		toDelete[v.id()] = v
+	}
+
+	for _, rule := range rules {
+		if r, exists := toDelete[rule.ID]; exists {
+			delete(toDelete, rule.ID)
+			if r.version == rule.Version { // 版本一致，不用更新
+				continue
+			}
+			if _, err := rm.updateRule(rule); err != nil {
+				Logger.Error("occur error on update rule", zap.Error(err))
+				return err
+			}
+		} else { // 内存缓存中不存在，该记录为新记录，创建
+			_, err := rm.createRule(rule)
+			return err
+		}
+	}
+
+	// toDelete中还存在的，即为已经删除的数据
+	for _, v := range toDelete {
+		rm.deleteRule(&types.ResourceRule{ID: v.id()})
+	}
+	return nil
+}
+
 func (rm *ruleManager) reset() {
 	rm.mu.Lock()
 
@@ -360,10 +417,5 @@ func (rm *ruleManager) reset() {
 	}
 
 	rm.cache.Purge()
-
 	rm.mu.Unlock()
-}
-
-func init() {
-	defaultRuleManager = newRuleManager()
 }

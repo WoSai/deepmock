@@ -2,28 +2,15 @@ package deepmock
 
 import (
 	"bytes"
-	"net/url"
 
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
 )
 
 var (
-	formContentType = []byte("application/x-www-form-urlencoded")
-	jsonContentType = []byte("application/json")
-)
-
-type (
-	renderContext struct {
-		Variable ruleVariable
-		Weight   params
-		Header   params
-		Query    params
-		Form     params
-		Json     map[string]interface{}
-	}
-
-	params map[string]string
+	formContentType      = []byte("application/x-www-form-urlencoded")
+	multipartContentType = []byte("multipart/form-data")
+	jsonContentType      = []byte("application/json")
 )
 
 func extractHeaderAsParams(req *fasthttp.Request) params {
@@ -46,18 +33,26 @@ func extractBodyAsParams(req *fasthttp.Request) (params, map[string]interface{})
 	ct := req.Header.ContentType()
 
 	switch {
-	case bytes.Contains(ct, formContentType):
-		val, err := url.ParseQuery(string(req.Body()))
-		if err != nil {
-			Logger.Error("failed to automatic parse form data", zap.Error(err))
-		}
-		f := make(params)
-		for k := range val {
-			f[k] = val.Get(k)
-		}
-		return f, nil
+	case bytes.HasPrefix(ct, formContentType):
+		p := make(params)
+		req.PostArgs().VisitAll(func(key, value []byte) {
+			p[string(key)] = string(value)
+		})
+		return p, nil
 
-	case bytes.Contains(ct, jsonContentType):
+	case bytes.HasPrefix(ct, multipartContentType):
+		p := make(params)
+		form, err := req.MultipartForm()
+		if err != nil {
+			Logger.Error("bad multipart form data", zap.Error(err))
+			return nil, nil
+		}
+		for k, v := range form.Value {
+			p[k] = v[0]
+		}
+		return p, nil
+
+	case bytes.HasPrefix(ct, jsonContentType):
 		j := make(map[string]interface{})
 		err := json.Unmarshal(req.Body(), &j)
 		if err != nil {

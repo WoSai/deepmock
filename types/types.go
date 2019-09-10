@@ -1,6 +1,15 @@
 package types
 
-import "errors"
+import (
+	"errors"
+	"time"
+
+	jsoniter "github.com/json-iterator/go"
+)
+
+var (
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
+)
 
 type (
 	CommonResource struct {
@@ -15,11 +24,16 @@ type (
 	}
 
 	ResourceRule struct {
-		ID        string                        `json:"id,omitempty"`
-		Request   *ResourceRequestMatcher       `json:"request,omitempty"`
-		Variable  ResourceVariable              `json:"variable,omitempty"`
-		Weight    ResourceWeight                `json:"weight,omitempty"`
-		Responses ResourceResponseRegulationSet `json:"responses,omitempty"`
+		ID           string                         `json:"id,omitempty" ddb:"id"`
+		Path         string                         `json:"path,omitempty" ddb:"path"`
+		Method       string                         `json:"method,omitempty" ddb:"method"`
+		Variable     *ResourceVariable              `json:"variable,omitempty" ddb:"variable"`
+		Weight       *ResourceWeight                `json:"weight,omitempty" ddb:"weight"`
+		Responses    *ResourceResponseRegulationSet `json:"responses,omitempty" ddb:"responses"`
+		Version      int                            `json:"-" ddb:"version"`
+		CreatedTime  time.Time                      `json:"-" ddb:"ctime"`
+		ModifiedTime time.Time                      `json:"-" ddb:"mtime"`
+		Disabled     bool                           `json:"-" ddb:"disabled"`
 	}
 
 	ResourceResponseRegulation struct {
@@ -59,17 +73,16 @@ type (
 	ResourceResponseRegulationSet []*ResourceResponseRegulation
 )
 
-func (rrm *ResourceRequestMatcher) Check() error {
-	if rrm == nil {
-		return errors.New("missing request matching")
-	}
-	if rrm.Path == "" {
-		return errors.New("missing path")
-	}
-	if rrm.Method == "" {
-		return errors.New("missing http method")
-	}
-	return nil
+func (rv *ResourceVariable) UnmarshalByte(data []byte) error {
+	return json.Unmarshal(data, rv)
+}
+
+func (rw *ResourceWeight) UnmarshalByte(data []byte) error {
+	return json.Unmarshal(data, rw)
+}
+
+func (rrr *ResourceResponseRegulationSet) UnmarshalByte(data []byte) error {
+	return json.Unmarshal(data, rrr)
 }
 
 func (rmr *ResourceResponseRegulation) Check() error {
@@ -79,13 +92,23 @@ func (rmr *ResourceResponseRegulation) Check() error {
 	return nil
 }
 
-func (mrs ResourceResponseRegulationSet) Check() error {
+func (rr ResourceRule) Check() error {
+	if rr.Path == "" {
+		return errors.New("missing mock api path")
+	}
+	if rr.Method == "" {
+		return errors.New("missing mock api method")
+	}
+	return rr.Responses.Check()
+}
+
+func (rrr ResourceResponseRegulationSet) Check() error {
 	var d int
-	if mrs == nil {
+	if rrr == nil {
 		return errors.New("missing mock response")
 	}
 
-	for _, r := range mrs {
+	for _, r := range rrr {
 		if r.IsDefault {
 			d++
 		}

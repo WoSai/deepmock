@@ -21,10 +21,8 @@ docker run --name deepmock -p 16600:16600 -v `pwd`/log:/app/log -d qastub/deepmo
 ```bash
 curl -X POST http://127.0.0.1:16600/api/v1/rule \
   -d '{
-    "request": {
-        "path": "/whoami",
-        "method": "get"
-    },
+    "path": "/whoami",
+    "method": "get",
     "responses": [
         {
             "is_default": true,
@@ -65,10 +63,8 @@ curl -X POST http://127.0.0.1:16600/api/v1/rule \
 
 ```json
 {
-    "request": {
-        "path": "/(.*)",
-        "method": "get"
-    },
+    "path": "/(.*)",
+    "method": "get",
     "variable": {
         "value": "123",
         "name":"jack",
@@ -117,10 +113,8 @@ DeepMock支持返回二进制报文，只需要对二进制内容进行base64编
 
 ```json
 {
-    "request": {
-        "path": "/baidu_logo",
-        "method": "get"
-    },
+    "path": "/baidu_logo",
+    "method": "get",
     "responses": [
         {
             "is_default": true,
@@ -203,10 +197,8 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
     "data": [
         {
             "id": "bba079deaa2b97037694a89386616d88",
-            "request": {
-                "path": "/(.*)",
-                "method": "get"
-            },
+            "path": "/(.*)",
+            "method": "get",
             "responses": [
                 {
                     "is_default": true,
@@ -221,10 +213,8 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
         },
         {
             "id": "ccf2e319d7d51ff3a73b1c704d77b0c1",
-            "request": {
-                "path": "/whoami",
-                "method": "get"
-            },
+            "path": "/whoami",
+             "method": "get",
             "responses": [
                 {
                     "is_default": true,
@@ -249,10 +239,8 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
 [
     {
         "id": "bba079deaa2b97037694a89386616d88",
-        "request": {
-            "path": "/(.*)",
-            "method": "get"
-        },
+        "path": "/(.*)",
+        "method": "get",
         "responses": [
             {
                 "is_default": true,
@@ -267,10 +255,8 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
     },
     {
         "id": "ccf2e319d7d51ff3a73b1c704d77b0c1",
-        "request": {
-            "path": "/whoami",
-            "method": "get"
-        },
+        "path": "/whoami",
+        "method": "get",
         "responses": [
             {
                 "is_default": true,
@@ -402,16 +388,25 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
 }
 ```
 
+### Response模板内置函数
+
+| 内置函数 | 参数 |使用方法 |说明 |
+| :---: | ---- | ---- | --- |
+|`uuid` | 无 | `{{ uuid }}`|返回一个uuid字符串|
+|`date`| `layout` | `{{date "layout"}}` | 按指定的格式返回当前日期，[参考链接](https://golang.google.cn/pkg/time/) |
+|`timestamp` | `precision` | `{{timestamp ms}}` | 按指定的精度返回unix时间戳：mcs,ms,sec|
+|`plus`| `v`, `i` | `{{plus v i}}` | 将v的值增加i，实现简单的计算，支持string\int\float类型|
+|`rand_string`| `n` | `{{rand_string n}}`| 生成长度为n的随机字符串 |
+ 
+
 ### Benchmark
 
 #### 静态response - `is_template: false`
 
 ```json
 {
-	"request": {
-		"path": "/echo",
-		"method": "get"
-	},
+	"path": "/echo",
+	"method": "get",
 	"responses": [
 		{
 			"is_default": true,
@@ -419,7 +414,7 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
 				"body": "hello deepmock"
 			}
 		}
-		]
+	]
 }
 ```
 
@@ -465,7 +460,7 @@ Percentage of the requests served within a certain time (ms)
 
 ```
 
-### 动态Response - `is_template: true`
+#### 动态Response - `is_template: true`
 
 创建如下规则:
 
@@ -510,27 +505,27 @@ Server Hostname:        127.0.0.1
 Server Port:            16600
 
 Document Path:          /render?age=12
-Document Length:        44 bytes
+Document Length:        43 bytes
 
 Concurrency Level:      100
-Time taken for tests:   26.472 seconds
+Time taken for tests:   24.930 seconds
 Complete requests:      1000000
-Failed requests:        500213
-   (Connect: 0, Receive: 0, Length: 500213, Exceptions: 0)
+Failed requests:        499830
+   (Connect: 0, Receive: 0, Length: 499830, Exceptions: 0)
 Keep-Alive requests:    1000000
-Total transferred:      210499787 bytes
-HTML transferred:       43499787 bytes
-Requests per second:    37776.35 [#/sec] (mean)
-Time per request:       2.647 [ms] (mean)
-Time per request:       0.026 [ms] (mean, across all concurrent requests)
-Transfer rate:          7765.54 [Kbytes/sec] received
+Total transferred:      210499830 bytes
+HTML transferred:       43499830 bytes
+Requests per second:    40112.24 [#/sec] (mean)
+Time per request:       2.493 [ms] (mean)
+Time per request:       0.025 [ms] (mean, across all concurrent requests)
+Transfer rate:          8245.72 [Kbytes/sec] received
 
 Connection Times (ms)
               min  mean[+/-sd] median   max
-Connect:        0    0   0.0      0       3
-Processing:     0    3   6.8      3     637
-Waiting:        0    3   6.8      3     637
-Total:          0    3   6.8      3     637
+Connect:        0    0   0.0      0       2
+Processing:     0    2   1.6      3      14
+Waiting:        0    2   1.6      3      14
+Total:          0    2   1.6      3      14
 
 Percentage of the requests served within a certain time (ms)
   50%      3
@@ -539,9 +534,8 @@ Percentage of the requests served within a certain time (ms)
   80%      4
   90%      4
   95%      5
-  98%      6
-  99%      7
- 100%    637 (longest request)
-
+  98%      5
+  99%      6
+ 100%     14 (longest request)
 ```
 

@@ -25,9 +25,6 @@ func main() {
 	flag.Parse()
 
 	app := lu.New()
-
-	app.Get("/api/help", deepmock.HandleHelp)
-
 	app.Get("/api/v1/rule", deepmock.HandleGetRule)
 	app.Post("/api/v1/rule", deepmock.HandleCreateRule)
 	app.Put("/api/v1/rule", deepmock.HandleUpdateRule)
