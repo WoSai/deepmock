@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/qastub/deepmock/types"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,6 +49,16 @@ func TestDateFunc(t *testing.T) {
 	buff := bytes.NewBuffer(nil)
 	assert.Nil(t, tmpl.Execute(buff, nil))
 	fmt.Println(buff.String())
+}
+
+func TestDateDeltaFunc(t *testing.T) {
+	tmpl, err := template.New("test").Funcs(defaultTemplateFuncs).Parse(
+		`{{date_delta "2019-09-19" "2006-01-02" -1 1 1 }}`)
+	assert.Nil(t, err)
+	buff := bytes.NewBuffer(nil)
+	assert.Nil(t, tmpl.Execute(buff, nil))
+	ret := buff.String()
+	assert.Equal(t, "2018-10-20", ret)
 }
 
 func TestTimestampFunc(t *testing.T) {

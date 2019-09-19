@@ -6,6 +6,7 @@ import (
 	"hash"
 	"math/rand"
 	"sync"
+	"time"
 )
 
 type (
@@ -67,4 +68,10 @@ func genRandomString(n int) string {
 		remain--
 	}
 	return string(b)
+}
+
+func init() {
+	// create default hash pool
+	defaultHashPoll = newHashPool()
+	rand.Seed(time.Now().UnixNano())
 }
