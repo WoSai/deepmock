@@ -99,6 +99,9 @@ func (rr ResourceRule) Check() error {
 	if rr.Method == "" {
 		return errors.New("missing mock api method")
 	}
+	if rr.Responses == nil {
+		return errors.New("missing response regulations")
+	}
 	return rr.Responses.Check()
 }
 

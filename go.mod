@@ -7,6 +7,7 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/golang-lru v0.5.3
+	github.com/jacexh/requests v0.1.4
 	github.com/json-iterator/go v1.1.7
 	github.com/stretchr/testify v1.4.0
 	github.com/valyala/fasthttp v1.4.0
