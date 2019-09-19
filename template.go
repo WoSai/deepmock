@@ -129,6 +129,14 @@ func plus(v interface{}, i int) interface{} {
 	}
 }
 
+func dateDelta(date, layout string, year, month, day int) string {
+	t, err := time.Parse(layout, date)
+	if err != nil {
+		return date
+	}
+	return t.AddDate(year, month, day).Format(layout)
+}
+
 // RegisterTemplateFunc 注册模板自定义函数
 func RegisterTemplateFunc(name string, f interface{}) error {
 	if _, ok := defaultTemplateFuncs[name]; ok {
@@ -136,4 +144,15 @@ func RegisterTemplateFunc(name string, f interface{}) error {
 	}
 	defaultTemplateFuncs[name] = f
 	return nil
+}
+
+func init() {
+	// create build-in template functions
+	defaultTemplateFuncs = make(template.FuncMap)
+	_ = RegisterTemplateFunc("uuid", genUUID)
+	_ = RegisterTemplateFunc("timestamp", currentTimestamp)
+	_ = RegisterTemplateFunc("date", formatDate)
+	_ = RegisterTemplateFunc("plus", plus)
+	_ = RegisterTemplateFunc("rand_string", genRandomString)
+	_ = RegisterTemplateFunc("date_delta", dateDelta)
 }

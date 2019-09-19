@@ -1,10 +1,7 @@
 package deepmock
 
 import (
-	"html/template"
-	"math/rand"
 	"os"
-	"time"
 
 	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
@@ -39,16 +36,4 @@ func init() {
 	}
 
 	Logger.Info("deepmock logger is initialized")
-
-	// create build-in template functions
-	defaultTemplateFuncs = make(template.FuncMap)
-	_ = RegisterTemplateFunc("uuid", genUUID)
-	_ = RegisterTemplateFunc("timestamp", currentTimestamp)
-	_ = RegisterTemplateFunc("date", formatDate)
-	_ = RegisterTemplateFunc("plus", plus)
-	_ = RegisterTemplateFunc("rand_string", genRandomString)
-
-	// create default hash pool
-	defaultHashPoll = newHashPool()
-	rand.Seed(time.Now().UnixNano())
 }
