@@ -89,6 +89,9 @@ func (rmr *ResourceResponseRegulation) Check() error {
 	if !rmr.IsDefault && rmr.Filter == nil {
 		return errors.New("missing filter rule, or set as default response")
 	}
+	if rmr.Response == nil {
+		return errors.New("missing response template")
+	}
 	return nil
 }
 
