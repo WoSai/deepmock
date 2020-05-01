@@ -1,12 +1,13 @@
 package deepmock
 
 import (
-	"crypto/md5"
 	"encoding/hex"
 	"hash"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/spaolacci/murmur3"
 )
 
 type (
@@ -31,7 +32,7 @@ var (
 func newHashPool() *hashPool {
 	return &hashPool{
 		pool: sync.Pool{New: func() interface{} {
-			return md5.New()
+			return murmur3.New32()
 		}}}
 }
 

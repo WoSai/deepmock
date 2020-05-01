@@ -3,9 +3,8 @@ package main
 import (
 	"flag"
 
-	"github.com/valyala/fasthttp"
-
 	"github.com/qastub/deepmock"
+	"github.com/valyala/fasthttp"
 	"github.com/vincentLiuxiang/lu"
 	"go.uber.org/zap"
 )
