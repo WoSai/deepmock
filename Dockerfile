@@ -2,7 +2,7 @@ FROM golang:1.12-alpine as builder
 WORKDIR /go/src/github.com/qastub/deepmock
 COPY . /go/src/github.com/qastub/deepmock
 ENV GO111MODULE on
-ENV GOPROXY https://proxy.qastub.com
+ENV GOPROXY https://goproxy.cn,direct
 RUN set -e \
     && sed -i "s/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g" /etc/apk/repositories \
     && apk update \
