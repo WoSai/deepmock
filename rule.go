@@ -369,7 +369,7 @@ func (rm *ruleManager) importRules(rules ...*types.ResourceRule) error {
 
 func (rm *ruleManager) importFromDatabase() error {
 	query, values, _ := builder.BuildSelect(storage.table, nil, []string{"*"})
-	rows, err := storage.buildConnection().Query(query, values...)
+	rows, err := storage.db.Query(query, values...)
 	if err != nil {
 		Logger.Error("failed to find records from database", zap.Error(err))
 		return err

@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -26,73 +24,30 @@ type (
 	ruleStorage struct {
 		db           *sql.DB
 		table        string
-		option       connOption
+		option       DatabaseOption
 		connectRetry int
 		once         sync.Once
 	}
-
-	connOption struct {
-		Username string
-		Password string
-		Host     string
-		Port     int
-		Database string
-	}
 )
 
-const (
-	envDBName     = "DEEPMOCK_DB_NAME"
-	envDBUser     = "DEEPMOCK_DB_USER"
-	envDBPassword = "DEEPMOCK_DB_PASSWORD"
-	envDBHost     = "DEEPMOCK_DB_HOST"
-	envDBPort     = "DEEPMOCK_DB_PORT"
-)
-
-// EnableRulePersistence 启用规则持久化
-func parseConnOption() connOption {
-	op := connOption{
-		Username: "root",
-		Password: "123",
-		Host:     "localhost",
-		Port:     3306,
-		Database: "deepmock",
+func BuildRuleStorage(opt DatabaseOption) *ruleStorage {
+	rs := &ruleStorage{
+		table:        "rule",
+		connectRetry: 3,
 	}
-
-	if d := os.Getenv(envDBName); d != "" {
-		op.Database = d
-	}
-
-	if u := os.Getenv(envDBUser); u != "" {
-		op.Username = u
-	}
-
-	if p := os.Getenv(envDBPassword); p != "" {
-		op.Password = p
-	}
-
-	if h := os.Getenv(envDBHost); h != "" {
-		op.Host = h
-	}
-
-	if port := os.Getenv(envDBPort); port != "" {
-		po, err := strconv.Atoi(port)
-		if err != nil {
-			Logger.Error("bad mysql port", zap.String("port", port))
-			panic(err)
-		}
-		op.Port = po
-	}
-	return op
+	rs.option = opt
+	rs.buildConnection(opt)
+	storage = rs
+	return rs
 }
 
-func (rs *ruleStorage) buildConnection() *sql.DB {
+func (rs *ruleStorage) buildConnection(opt DatabaseOption) *sql.DB {
 	rs.once.Do(func() {
 		var db *sql.DB
 		var err error
-		co := parseConnOption()
 
 		for i := 0; i <= rs.connectRetry; i++ {
-			db, err = manager.New(co.Database, co.Username, co.Password, co.Host).Set(
+			db, err = manager.New(opt.Name, opt.Username, opt.Password, opt.Host).Set(
 				manager.SetCharset("utf8mb4"),
 				manager.SetAllowCleartextPasswords(true),
 				manager.SetInterpolateParams(true),
@@ -100,20 +55,20 @@ func (rs *ruleStorage) buildConnection() *sql.DB {
 				manager.SetReadTimeout(3*time.Second),
 				manager.SetParseTime(true),
 				manager.SetLoc("Local"),
-			).Port(co.Port).Open(true)
+			).Port(opt.Port).Open(true)
 			if err != nil {
-				Logger.Error("failed to connect to mysql", zap.Any("params", co), zap.Error(err))
-				time.Sleep(5 * time.Second)
+				Logger.Error("failed to connect to mysql", zap.Any("params", opt), zap.Error(err))
+				time.Sleep(2 * time.Second)
 				continue
 			}
-			Logger.Info("accessed mysql database", zap.Any("params", co))
+			Logger.Info("accessed mysql database", zap.Any("params", opt))
 			break
 		}
 		if err != nil {
 			panic(err)
 		}
 		rs.db = db
-		rs.option = co
+		rs.option = opt
 	})
 	return rs.db
 }
@@ -148,7 +103,7 @@ func (rs *ruleStorage) createRule(res *types.ResourceRule) error {
 		return err
 	}
 	Logger.Info(query, zap.Any("values", values))
-	_, err = rs.buildConnection().Exec(query, values...)
+	_, err = rs.db.Exec(query, values...)
 	return err
 }
 
@@ -159,7 +114,7 @@ func (rs *ruleStorage) getRule(ri string) (*types.ResourceRule, error) {
 		[]string{"*"},
 	)
 	Logger.Info(query, zap.Any("values", values))
-	rows, err := rs.buildConnection().Query(query, values...)
+	rows, err := rs.db.Query(query, values...)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +200,7 @@ func (rs *ruleStorage) delete(res *types.ResourceRule) error {
 		return err
 	}
 	Logger.Info(cond, zap.Any("values", values))
-	_, err = rs.buildConnection().Exec(cond, values...)
+	_, err = rs.db.Exec(cond, values...)
 	return err
 }
 
@@ -253,7 +208,7 @@ func (rs *ruleStorage) export() ([]*types.ResourceRule, error) {
 	query, values, _ := builder.BuildSelect(rs.table, nil, []string{"*"})
 	Logger.Info(query, zap.Any("values", values))
 
-	rows, err := rs.buildConnection().Query(query, values...)
+	rows, err := rs.db.Query(query, values...)
 	if err != nil {
 		return nil, err
 	}
@@ -271,8 +226,7 @@ func (rs *ruleStorage) importRules(rules ...*types.ResourceRule) error {
 		}
 	}
 
-	db := rs.buildConnection()
-	tx, err := db.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelSerializable})
+	tx, err := rs.db.BeginTx(context.Background(), &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
 		Logger.Error("failed to create transaction", zap.Error(err))
 		return err
@@ -342,7 +296,7 @@ func (rs *ruleStorage) updateRecord(res *types.ResourceRule) error {
 		return err
 	}
 	Logger.Info(cond, zap.Any("values", values))
-	_, err = rs.buildConnection().Exec(cond, values...)
+	_, err = rs.db.Exec(cond, values...)
 	if err != nil {
 		return err
 	}
@@ -368,11 +322,4 @@ func marshalPropertyOfRule(res *types.ResourceRule) ([]byte, []byte, []byte, err
 		}
 	}
 	return v, w, r, nil
-}
-
-func init() {
-	storage = &ruleStorage{
-		table:        "rule",
-		connectRetry: 3,
-	}
 }
