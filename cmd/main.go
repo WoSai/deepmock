@@ -1,8 +1,7 @@
 package main
 
 import (
-	"flag"
-
+	"github.com/jacexh/multiconfig"
 	"github.com/qastub/deepmock"
 	"github.com/valyala/fasthttp"
 	"github.com/vincentLiuxiang/lu"
@@ -10,18 +9,16 @@ import (
 )
 
 var (
-	onPort     = ":16600"
-	datasource = "localhost:3306"
-	version    = "(git commit revision)"
+	version = "(git commit revision)"
 )
 
-func init() {
-	flag.StringVar(&onPort, "port", onPort, "监听端口")
-	flag.StringVar(&datasource, "datasource", datasource, "数据库连接地址")
-}
-
 func main() {
-	flag.Parse()
+	loader := multiconfig.NewWithPathAndEnvPrefix("", "DEEPMOCK")
+	opt := new(deepmock.Option)
+	loader.MustLoad(opt)
+
+	// 连接数据库
+	deepmock.BuildRuleStorage(opt.DB)
 
 	app := lu.New()
 	app.Get("/api/v1/rule", deepmock.HandleGetRule)
@@ -41,6 +38,6 @@ func main() {
 		Concurrency: 1024 * 1024,
 	}
 
-	deepmock.Logger.Info("deepmock will listen on port "+onPort, zap.String("version", version))
-	deepmock.Logger.Fatal("deepmock is down", zap.Error(server.ListenAndServe(onPort)))
+	deepmock.Logger.Info("deepmock will listen on port "+opt.Server.Port, zap.String("version", version))
+	deepmock.Logger.Fatal("deepmock is down", zap.Error(server.ListenAndServe(opt.Server.Port)))
 }
