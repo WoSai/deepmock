@@ -39,5 +39,12 @@ func main() {
 	}
 
 	deepmock.Logger.Info("deepmock will listen on port "+opt.Server.Port, zap.String("version", version))
-	deepmock.Logger.Fatal("deepmock is down", zap.Error(server.ListenAndServe(opt.Server.Port)))
+
+	if opt.Server.KeyFile != "" && opt.Server.CertFile != "" {
+		deepmock.Logger.Fatal("deepmock is down", zap.Error(
+			server.ListenAndServeTLS(opt.Server.Port, opt.Server.CertFile, opt.Server.KeyFile),
+		))
+	} else {
+		deepmock.Logger.Fatal("deepmock is down", zap.Error(server.ListenAndServe(opt.Server.Port)))
+	}
 }
