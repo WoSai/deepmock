@@ -15,6 +15,8 @@ type (
 	}
 
 	ServerOption struct {
-		Port string `default:":16600"`
+		Port     string `default:":16600"`
+		KeyFile  string
+		CertFile string
 	}
 )
