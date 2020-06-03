@@ -6,8 +6,8 @@ import (
 	"html/template"
 	"testing"
 
-	"github.com/qastub/deepmock/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/wosai/deepmock/types"
 )
 
 func TestNewResponseTemplate(t *testing.T) {

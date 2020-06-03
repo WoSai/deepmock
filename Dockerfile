@@ -1,6 +1,6 @@
 FROM golang:1.14-alpine as builder
-WORKDIR /go/src/github.com/qastub/deepmock
-COPY . /go/src/github.com/qastub/deepmock
+WORKDIR /go/src/github.com/wosai/deepmock
+COPY . /go/src/github.com/wosai/deepmock
 ENV GO111MODULE on
 ENV GOPROXY https://goproxy.cn,direct
 RUN set -e \
@@ -13,10 +13,8 @@ RUN set -e \
 
 FROM alpine
 WORKDIR /app
-COPY --from=builder /go/src/github.com/qastub/deepmock/deepmock .
+COPY --from=builder /go/src/github.com/wosai/deepmock/deepmock .
 COPY entrypoint.sh /usr/bin/
-VOLUME /app/log
-ENV DEEPMOCK_LOGFILE /app/log/deepmock.log
 EXPOSE 16600
 ENTRYPOINT ["entrypoint.sh"]
-CMD ["-port", ":16600"]
+CMD ["-server-port", ":16600"]

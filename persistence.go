@@ -12,7 +12,7 @@ import (
 	"github.com/didi/gendry/manager"
 	"github.com/didi/gendry/scanner"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/qastub/deepmock/types"
+	"github.com/wosai/deepmock/types"
 	"go.uber.org/zap"
 )
 

@@ -1,8 +1,8 @@
 package deepmock
 
 import (
-	"github.com/qastub/deepmock/types"
 	"github.com/valyala/fasthttp"
+	"github.com/wosai/deepmock/types"
 )
 
 type (

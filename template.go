@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/qastub/deepmock/types"
 	"github.com/valyala/fasthttp"
+	"github.com/wosai/deepmock/types"
 	"go.uber.org/zap"
 )
 

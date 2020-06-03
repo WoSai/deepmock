@@ -10,8 +10,8 @@ import (
 	"github.com/didi/gendry/builder"
 	"github.com/didi/gendry/scanner"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/qastub/deepmock/types"
 	"github.com/valyala/fasthttp"
+	"github.com/wosai/deepmock/types"
 	"go.uber.org/zap"
 )
 
