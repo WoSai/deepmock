@@ -228,7 +228,7 @@ func bindBody(ctx *fasthttp.RequestCtx, v interface{}) error {
 }
 
 func renderSuccessfulResponse(resp *fasthttp.Response, v interface{}) {
-	res := &types.CommonResource{
+	res := &resource.CommonResource{
 		Code: 200,
 		Data: v,
 	}
