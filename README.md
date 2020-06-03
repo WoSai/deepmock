@@ -1,9 +1,9 @@
 # DeepMock
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/qastub/ultron)](https://goreportcard.com/report/github.com/qastub/deepmock)
-[![build-state](https://travis-ci.org/qastub/deepmock.svg?branch=master)](https://travis-ci.org/qastub/deepmock)
-[![codecov](https://codecov.io/gh/qastub/deepmock/branch/master/graph/badge.svg)](https://codecov.io/gh/qastub/deepmock)
-[![GoDoc](https://godoc.org/github.com/qastub/deepmock?status.svg)](https://godoc.org/github.com/qastub/deepmock)
+[![Go Report Card](https://goreportcard.com/badge/github.com/WoSai/deepmock)](https://goreportcard.com/report/github.com/WoSai/deepmock) 
+![master](https://github.com/WoSai/deepmock/workflows/master/badge.svg?branch=master) 
+[![codecov](https://codecov.io/gh/WoSai/deepmock/branch/master/graph/badge.svg)](https://codecov.io/gh/WoSai/deepmock) 
+[![GoDoc](https://godoc.org/github.com/WoSai/deepmock?status.svg)](https://godoc.org/github.com/WoSai/deepmock)
 
 
 ### 下载安装
@@ -11,7 +11,7 @@
 建议使用docker
 
 ```bash
-docker run --name deepmock -p 16600:16600 -v `pwd`/log:/app/log -d qastub/deepmock
+docker run --name deepmock -p 16600:16600 wosai/deepmock
 ```
 
 ### 快速上手
