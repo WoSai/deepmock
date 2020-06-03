@@ -5,6 +5,8 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/vincentLiuxiang/lu"
 	"github.com/wosai/deepmock"
+	"github.com/wosai/deepmock/repository"
+	"github.com/wosai/deepmock/types"
 	"go.uber.org/zap"
 )
 
@@ -14,11 +16,11 @@ var (
 
 func main() {
 	loader := multiconfig.NewWithPathAndEnvPrefix("", "DEEPMOCK")
-	opt := new(deepmock.Option)
+	opt := new(types.Option)
 	loader.MustLoad(opt)
 
 	// 连接数据库
-	deepmock.BuildRuleStorage(opt.DB)
+	repository.BuildDBConnection(opt.DB)
 
 	app := lu.New()
 	app.Get("/api/v1/rule", deepmock.HandleGetRule)

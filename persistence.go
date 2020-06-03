@@ -6,10 +6,8 @@ import (
 	"errors"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/didi/gendry/builder"
-	"github.com/didi/gendry/manager"
 	"github.com/didi/gendry/scanner"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/wosai/deepmock/types"
@@ -39,38 +37,6 @@ func BuildRuleStorage(opt DatabaseOption) *ruleStorage {
 	rs.buildConnection(opt)
 	storage = rs
 	return rs
-}
-
-func (rs *ruleStorage) buildConnection(opt DatabaseOption) *sql.DB {
-	rs.once.Do(func() {
-		var db *sql.DB
-		var err error
-
-		for i := 0; i <= rs.connectRetry; i++ {
-			db, err = manager.New(opt.Name, opt.Username, opt.Password, opt.Host).Set(
-				manager.SetCharset("utf8mb4"),
-				manager.SetAllowCleartextPasswords(true),
-				manager.SetInterpolateParams(true),
-				manager.SetTimeout(3*time.Second),
-				manager.SetReadTimeout(3*time.Second),
-				manager.SetParseTime(true),
-				manager.SetLoc("Local"),
-			).Port(opt.Port).Open(true)
-			if err != nil {
-				Logger.Error("failed to connect to mysql", zap.Any("params", opt), zap.Error(err))
-				time.Sleep(2 * time.Second)
-				continue
-			}
-			Logger.Info("accessed mysql database", zap.Any("params", opt))
-			break
-		}
-		if err != nil {
-			panic(err)
-		}
-		rs.db = db
-		rs.option = opt
-	})
-	return rs.db
 }
 
 func (rs *ruleStorage) createRule(res *types.ResourceRule) error {
