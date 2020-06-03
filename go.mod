@@ -1,4 +1,4 @@
-module github.com/qastub/deepmock
+module github.com/wosai/deepmock
 
 go 1.13
 

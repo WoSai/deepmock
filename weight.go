@@ -3,7 +3,7 @@ package deepmock
 import (
 	"math/rand"
 
-	"github.com/qastub/deepmock/types"
+	"github.com/wosai/deepmock/types"
 )
 
 type (

@@ -3,9 +3,9 @@ package deepmock
 import (
 	"testing"
 
-	"github.com/qastub/deepmock/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
+	"github.com/wosai/deepmock/types"
 )
 
 func TestHeaderFilter_Filter(t *testing.T) {

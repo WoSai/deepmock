@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/qastub/deepmock/types"
+	"github.com/wosai/deepmock/types"
 	"github.com/valyala/fasthttp"
 	"go.uber.org/zap"
 )

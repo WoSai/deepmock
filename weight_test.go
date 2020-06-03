@@ -3,8 +3,8 @@ package deepmock
 import (
 	"testing"
 
-	"github.com/qastub/deepmock/types"
 	"github.com/stretchr/testify/assert"
+	"github.com/wosai/deepmock/types"
 )
 
 func TestWeightingDice_Path(t *testing.T) {

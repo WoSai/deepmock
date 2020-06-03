@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/jacexh/multiconfig"
-	"github.com/qastub/deepmock"
 	"github.com/valyala/fasthttp"
 	"github.com/vincentLiuxiang/lu"
+	"github.com/wosai/deepmock"
 	"go.uber.org/zap"
 )
 

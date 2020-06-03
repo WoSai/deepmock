@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jacexh/requests"
-	"github.com/qastub/deepmock/types"
+	"github.com/wosai/deepmock/types"
 )
 
 type (
