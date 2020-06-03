@@ -5,6 +5,9 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/wosai/deepmock"
+	"go.uber.org/zap"
+
 	"github.com/didi/gendry/builder"
 	"github.com/didi/gendry/scanner"
 	"github.com/wosai/deepmock/types"
@@ -27,13 +30,15 @@ func (r *RuleStorage) CreateRule(ctx context.Context, rule *entity.Rule) error {
 	if err != nil {
 		return err
 	}
-	record["version"] = 0
+	record["version"] = 1
+	record["disabled"] = 0
 	delete(record, "ctime")
 	delete(record, "mtime")
 	query, values, err := builder.BuildInsert(r.table, []map[string]interface{}{record})
 	if err != nil {
 		return err
 	}
+	deepmock.Logger.Info(query, zap.Any("values", values))
 	_, err = r.db.ExecContext(ctx, query, values...)
 	return err
 }
@@ -52,6 +57,7 @@ func (r *RuleStorage) UpdateRule(ctx context.Context, rule *entity.Rule) error {
 	if err != nil {
 		return err
 	}
+	deepmock.Logger.Info(cond, zap.Any("values", values))
 	_, err = r.db.ExecContext(ctx, cond, values...)
 	return err
 }
@@ -62,6 +68,7 @@ func (r *RuleStorage) GetRuleByID(ctx context.Context, rid string) (*entity.Rule
 		map[string]interface{}{"id": rid, "_limit": []uint{1}},
 		[]string{"*"},
 	)
+	deepmock.Logger.Info(query, zap.Any("values", values))
 	rows, err := r.db.QueryContext(ctx, query, values...)
 	if err != nil {
 		return nil, err
@@ -84,12 +91,14 @@ func (r *RuleStorage) DeleteRule(ctx context.Context, rid string) error {
 	if err != nil {
 		return err
 	}
+	deepmock.Logger.Info(cond, zap.Any("values", values))
 	_, err = r.db.ExecContext(ctx, cond, values...)
 	return err
 }
 
 func (r *RuleStorage) Export(ctx context.Context) ([]*entity.Rule, error) {
 	query, values, _ := builder.BuildSelect(r.table, nil, []string{"*"})
+	deepmock.Logger.Info(query, zap.Any("values", values))
 	rows, err := r.db.QueryContext(ctx, query, values...)
 	if err != nil {
 		return nil, err
@@ -108,6 +117,7 @@ func (r *RuleStorage) Import(ctx context.Context, rules ...*entity.Rule) error {
 
 	// 清空数据库
 	cond, values, _ := builder.BuildDelete(r.table, nil)
+	deepmock.Logger.Info(cond, zap.Any("values", values))
 	_, err = tx.ExecContext(ctx, cond, values...)
 	if err != nil {
 		_ = tx.Rollback()
@@ -117,12 +127,12 @@ func (r *RuleStorage) Import(ctx context.Context, rules ...*entity.Rule) error {
 	var records = make([]map[string]interface{}, len(rules))
 	for i, rule := range rules {
 		record, err := scanner.Map(rule, "ddb")
-		delete(record, "ctime")
-		delete(record, "mtime")
 		if err != nil {
 			_ = tx.Rollback()
 			return err
 		}
+		delete(record, "ctime")
+		delete(record, "mtime")
 		records[i] = record
 	}
 
@@ -131,6 +141,7 @@ func (r *RuleStorage) Import(ctx context.Context, rules ...*entity.Rule) error {
 		_ = tx.Rollback()
 		return err
 	}
+	deepmock.Logger.Info(cond, zap.Any("values", values))
 	_, err = tx.ExecContext(ctx, cond, values...)
 	if err != nil {
 		_ = tx.Rollback()

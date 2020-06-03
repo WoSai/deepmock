@@ -71,7 +71,7 @@ func newResponseTemplate(rrt *types.ResourceResponseTemplate) (*responseTemplate
 	}
 
 	if rt.isTemplate {
-		tmpl, err := template.New(genRandomString(8)).Funcs(defaultTemplateFuncs).Parse(string(rt.body))
+		tmpl, err := template.New(GenRandomString(8)).Funcs(defaultTemplateFuncs).Parse(string(rt.body))
 		if err != nil {
 			Logger.Error("failed to parse html template", zap.ByteString("template", rt.body), zap.Error(err))
 			return nil, err
@@ -153,6 +153,6 @@ func init() {
 	_ = RegisterTemplateFunc("timestamp", currentTimestamp)
 	_ = RegisterTemplateFunc("date", formatDate)
 	_ = RegisterTemplateFunc("plus", plus)
-	_ = RegisterTemplateFunc("rand_string", genRandomString)
+	_ = RegisterTemplateFunc("rand_string", GenRandomString)
 	_ = RegisterTemplateFunc("date_delta", dateDelta)
 }

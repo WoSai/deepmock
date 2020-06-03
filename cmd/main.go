@@ -3,9 +3,9 @@ package main
 import (
 	"github.com/jacexh/multiconfig"
 	"github.com/valyala/fasthttp"
-	"github.com/vincentLiuxiang/lu"
 	"github.com/wosai/deepmock"
 	"github.com/wosai/deepmock/repository"
+	"github.com/wosai/deepmock/router"
 	"github.com/wosai/deepmock/types"
 	"go.uber.org/zap"
 )
@@ -22,24 +22,13 @@ func main() {
 	// 连接数据库
 	repository.BuildDBConnection(opt.DB)
 
-	app := lu.New()
-	app.Get("/api/v1/rule", deepmock.HandleGetRule)
-	app.Post("/api/v1/rule", deepmock.HandleCreateRule)
-	app.Put("/api/v1/rule", deepmock.HandleUpdateRule)
-	app.Patch("/api/v1/rule", deepmock.HandlePatchRule)
-	app.Delete("/api/v1/rule", deepmock.HandleDeleteRule)
-
-	app.Get("/api/v1/rules", deepmock.HandleExportRules)
-	app.Post("/api/v1/rules", deepmock.HandleImportRules)
-
-	app.Use("/", deepmock.HandleMockedAPI)
-
+	// 初始化http handler
+	app := router.BuildRouter()
 	server := &fasthttp.Server{
 		Name:        "DeepMock Service",
 		Handler:     app.Handler,
 		Concurrency: 1024 * 1024,
 	}
-
 	deepmock.Logger.Info("deepmock will listen on port "+opt.Server.Port, zap.String("version", version))
 
 	if opt.Server.KeyFile != "" && opt.Server.CertFile != "" {

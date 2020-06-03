@@ -2,17 +2,23 @@ package api
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 
+	"github.com/wosai/deepmock/service"
+
+	jsoniter "github.com/json-iterator/go"
+
 	"github.com/valyala/fasthttp"
+	"github.com/wosai/deepmock"
 	"github.com/wosai/deepmock/types"
+	"github.com/wosai/deepmock/types/resource"
 	"go.uber.org/zap"
 )
 
 var (
 	slash          = []byte(`/`)
 	apiGetRulePath = []byte(`/api/v1/rule`)
+	json           = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 func parsePathVar(path, uri []byte) string {
@@ -82,18 +88,17 @@ func render(re *ruleExecutor, rt *responseTemplate, ctx *fasthttp.RequestCtx) {
 
 // HandleCreateRule 创建规则接口
 func HandleCreateRule(ctx *fasthttp.RequestCtx, _ func(error)) {
-	rule := new(types.ResourceRule)
+	rule := new(resource.Rule)
 	if err := bindBody(ctx, rule); err != nil {
 		return
 	}
 
-	//re, err := defaultRuleManager.createRule(rule)
-	//if err != nil {
-	//	renderFailedAPIResponse(&ctx.Response, err)
-	//	return
-	//}
-	//renderSuccessfulResponse(&ctx.Response, re.wrap())
-	err := storage.createRule(rule)
+	rid, err := service.RuleService.CreateRule(rule)
+	if err != nil {
+		renderFailedAPIResponse(&ctx.Response, err)
+		return
+	}
+	rule, err = service.RuleService.GetRule(rid)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -105,33 +110,23 @@ func HandleCreateRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 func HandleGetRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 	ruleID := parsePathVar(apiGetRulePath, ctx.RequestURI())
 
-	rule, err := storage.getRule(ruleID)
+	rule, err := service.RuleService.GetRule(ruleID)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
 	renderSuccessfulResponse(&ctx.Response, rule)
-	//re, exists := defaultRuleManager.getRuleByID(ruleID)
-	//var err error
-	//if !exists {
-	//	err = errors.New("cannot found rule with id " + ruleID)
-	//}
-	//if err != nil {
-	//	renderFailedAPIResponse(&ctx.Response, err)
-	//	return
-	//}
-	//renderSuccessfulResponse(&ctx.Response, re.wrap())
 }
 
 // HandleDeleteRule 根据rule id删除规则
 func HandleDeleteRule(ctx *fasthttp.RequestCtx, _ func(error)) {
-	res := new(types.ResourceRule)
+	res := new(resource.Rule)
 	if err := bindBody(ctx, res); err != nil {
 		return
 	}
 
 	//defaultRuleManager.deleteRule(res)
-	err := storage.delete(res)
+	err := service.RuleService.DeleteRule(res.ID)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -139,47 +134,44 @@ func HandleDeleteRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 	renderSuccessfulResponse(&ctx.Response, nil)
 }
 
-// HandleUpdateRule 根据rule id更新目前规则，如果规则不存在，不会新建
-func HandleUpdateRule(ctx *fasthttp.RequestCtx, _ func(error)) {
-	res := new(types.ResourceRule)
+// HandlePutRule 根据rule id更新目前规则，如果规则不存在，不会新建
+func HandlePutRule(ctx *fasthttp.RequestCtx, _ func(error)) {
+	res := new(resource.Rule)
 	if err := bindBody(ctx, res); err != nil {
 		return
 	}
 
-	rule, err := storage.put(res)
+	err := service.RuleService.PutRule(res)
+	if err != nil {
+		renderFailedAPIResponse(&ctx.Response, err)
+		return
+	}
+	rule, err := service.RuleService.GetRule(res.ID)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
 	renderSuccessfulResponse(&ctx.Response, rule)
-
-	//re, err := defaultRuleManager.updateRule(res)
-	//if err != nil {
-	//	renderFailedAPIResponse(&ctx.Response, err)
-	//	return
-	//}
-	//renderSuccessfulResponse(&ctx.Response, re.wrap())
 }
 
 // HandlePatchRule 根据rule id更新目前规则，与put的区别在于：put需要传入完整的rule对象，而patch只需要传入更新部分即可
 func HandlePatchRule(ctx *fasthttp.RequestCtx, _ func(error)) {
-	res := new(types.ResourceRule)
+	res := new(resource.Rule)
 	if err := bindBody(ctx, res); err != nil {
 		return
 	}
 
-	rule, err := storage.patch(res)
+	err := service.RuleService.PatchRule(res)
+	if err != nil {
+		renderFailedAPIResponse(&ctx.Response, err)
+		return
+	}
+	rule, err := service.RuleService.GetRule(res.ID)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
 	renderSuccessfulResponse(&ctx.Response, rule)
-	//re, err := defaultRuleManager.patchRule(res)
-	//if err != nil {
-	//	renderFailedAPIResponse(&ctx.Response, err)
-	//	return
-	//}
-	//renderSuccessfulResponse(&ctx.Response, re.wrap())
 }
 
 // HandleExportRules 导出当前所有规则
@@ -221,11 +213,11 @@ func HandleImportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
 
 func bindBody(ctx *fasthttp.RequestCtx, v interface{}) error {
 	if err := json.Unmarshal(ctx.Request.Body(), v); err != nil {
-		Logger.Error("failed to parse request body", zap.ByteString("path", ctx.Request.URI().Path()), zap.ByteString("method", ctx.Request.Header.Method()), zap.Error(err))
+		deepmock.Logger.Error("failed to parse request body", zap.ByteString("path", ctx.Request.URI().Path()), zap.ByteString("method", ctx.Request.Header.Method()), zap.Error(err))
 		ctx.Response.Header.SetContentType("application/json")
 		ctx.Response.SetStatusCode(fasthttp.StatusOK)
 
-		res := new(types.CommonResource)
+		res := new(resource.CommonResource)
 		res.Code = fasthttp.StatusBadRequest
 		res.ErrorMessage = err.Error()
 		data, _ := json.Marshal(res)
@@ -247,7 +239,7 @@ func renderSuccessfulResponse(resp *fasthttp.Response, v interface{}) {
 }
 
 func renderFailedAPIResponse(resp *fasthttp.Response, err error) {
-	res := &types.CommonResource{Code: 400, ErrorMessage: err.Error()}
+	res := &resource.CommonResource{Code: 400, ErrorMessage: err.Error()}
 	data, _ := json.Marshal(res)
 	resp.Header.SetContentType("application/json")
 	resp.SetBody(data)

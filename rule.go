@@ -64,7 +64,7 @@ func newRequestMatcher(path, method string) (*requestMatcher, error) {
 		method: bytes.ToUpper([]byte(method)),
 		re:     re,
 	}
-	rm.id = genID(rm.path, rm.method)
+	rm.id = GenID(rm.path, rm.method)
 	return rm, nil
 }
 

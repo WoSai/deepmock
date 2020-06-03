@@ -46,7 +46,7 @@ func (rs *ruleStorage) createRule(res *types.ResourceRule) error {
 	}
 
 	method := strings.ToUpper(res.Method)
-	res.ID = genID([]byte(res.Path), []byte(method))
+	res.ID = GenID([]byte(res.Path), []byte(method))
 	res.Method = method
 
 	v, w, r, err := marshalPropertyOfRule(res)
@@ -55,7 +55,7 @@ func (rs *ruleStorage) createRule(res *types.ResourceRule) error {
 	}
 
 	query, values, err := builder.BuildInsert("rule", []map[string]interface{}{{
-		"id":        genID([]byte(res.Path), []byte(method)),
+		"id":        GenID([]byte(res.Path), []byte(method)),
 		"path":      res.Path,
 		"method":    strings.ToUpper(res.Method),
 		"variable":  v,
@@ -209,7 +209,7 @@ func (rs *ruleStorage) importRules(rules ...*types.ResourceRule) error {
 	var records = make([]map[string]interface{}, len(rules))
 	for i, rule := range rules {
 		method := strings.ToUpper(rule.Method)
-		rule.ID = genID([]byte(rule.Path), []byte(method))
+		rule.ID = GenID([]byte(rule.Path), []byte(method))
 		rule.Method = method
 
 		v, w, r, err := marshalPropertyOfRule(rule)
