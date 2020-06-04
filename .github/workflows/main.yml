@@ -20,14 +20,10 @@ jobs:
         run: go test -race -coverprofile=coverage.txt -covermode=atomic -v ./...
       - name: Test Coverage Report
         run: bash <(curl -s https://codecov.io/bash)
-      - name: Log into DockerHub
-        if: ${{ github.event_name == 'release' }}
-        uses: azure/docker-login@v1
+      - uses: docker/build-push-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_ORG_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_ORG_ACCESS_TOKEN }}
-      - name: Tag Docker Image
-        if: ${{ github.event_name == 'release' }}
-        run: |
-          docker build -t $DOCKER_IMAGE:${{github.ref}} .
-          docker push $DOCKER_IMAGE:${{github.ref}}
+          password: ${{ secrets.secrets.DOCKERHUB_ORG_ACCESS_TOKEN }}
+          repository: wosai/deepmock
+          tag_with_ref: true
+          tag_with_sha: true
