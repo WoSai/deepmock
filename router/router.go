@@ -14,8 +14,8 @@ func BuildRouter() *lu.Lu {
 	app.Patch("/api/v1/rule", api.HandlePatchRule)
 	app.Delete("/api/v1/rule", api.HandleDeleteRule)
 
-	//app.Get("/api/v1/rules", deepmock.HandleExportRules)
-	//app.Post("/api/v1/rules", deepmock.HandleImportRules)
+	app.Get("/api/v1/rules", api.HandleExportRules)
+	app.Post("/api/v1/rules", api.HandleImportRules)
 
 	//app.Use("/", deepmock.HandleMockedAPI)
 

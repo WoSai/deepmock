@@ -242,3 +242,49 @@ func (srv rule) PatchRule(nr *resource.Rule) error {
 	}
 	return err
 }
+
+func (srv rule) Export() ([]*resource.Rule, error) {
+	res, err := srv.repo.Export(context.TODO())
+	if err != nil {
+		deepmock.Logger.Error("failed to export rules", zap.Error(err))
+		return nil, err
+	}
+	rules := make([]*resource.Rule, len(res))
+	for index, re := range res {
+		r, err := convertAsResource(re)
+		if err != nil {
+			deepmock.Logger.Error("failed to convert as resource", zap.String("rule_id", re.ID), zap.Error(err))
+			return nil, err
+		}
+		rules[index] = r
+	}
+	return rules, nil
+}
+
+func (srv rule) Import(rules ...*resource.Rule) error {
+	if len(rules) == 0 {
+		deepmock.Logger.Error("disallowed to import empty rule")
+		return errors.New("nothing to import")
+	}
+	res := make([]*entity.Rule, len(rules))
+	for index, rule := range rules {
+		if err := rule.Check(); err != nil {
+			deepmock.Logger.Error("failed to validate rule", zap.String("rule_id", rule.ID), zap.Error(err))
+			return err
+		}
+
+		re, err := convertAsEntity(rule)
+		if err != nil {
+			deepmock.Logger.Error("failed to convert as entity", zap.String("rule_id", rule.ID), zap.Error(err))
+			return err
+		}
+
+		res[index] = re
+	}
+
+	if err := srv.repo.Import(context.TODO(), res...); err != nil {
+		deepmock.Logger.Error("failed to import rules", zap.Error(err))
+		return err
+	}
+	return nil
+}

@@ -182,7 +182,7 @@ func HandleExportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
 	//	rules[k] = v.wrap()
 	//}
 
-	rules, err := storage.export()
+	rules, err := service.RuleService.Export()
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -192,18 +192,12 @@ func HandleExportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
 
 // HandleImportRules 导入规则，将会清空目前所有规则
 func HandleImportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
-	var rules []*types.ResourceRule
+	var rules []*resource.Rule
 	if err := bindBody(ctx, &rules); err != nil {
 		return
 	}
-	//err := defaultRuleManager.importRules(rules...)
-	//if err != nil {
-	//	renderFailedAPIResponse(&ctx.Response, err)
-	//	return
-	//}
-	//renderSuccessfulResponse(&ctx.Response, nil)
 
-	err := storage.importRules(rules...)
+	err := service.RuleService.Import(rules...)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
