@@ -22,4 +22,6 @@ type (
 		// Import 导入所有规则
 		Import(context.Context, ...*entity.Rule) error
 	}
+
+	MockRepository interface{}
 )

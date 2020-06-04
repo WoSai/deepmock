@@ -1,4 +1,4 @@
-package deepmock
+package mock
 
 import (
 	"bytes"
@@ -10,19 +10,20 @@ import (
 	"github.com/didi/gendry/builder"
 	"github.com/didi/gendry/scanner"
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/qastub/deepmock/types"
 	"github.com/valyala/fasthttp"
-	"github.com/wosai/deepmock/types"
+	"github.com/wosai/deepmock"
+	"github.com/wosai/deepmock/types/resource"
 	"go.uber.org/zap"
 )
 
-type (
-	ruleVariable types.ResourceVariable
+var RuleDomain ruleDomain
 
-	ruleManager struct {
-		executors map[string]*ruleExecutor
-		cache     *lru.ARCCache
-		mu        sync.RWMutex
-	}
+type (
+	ruleVariable          resource.Variable
+	responseRegulationSet []*responseRegulation
+
+	ruleDomain struct{}
 
 	ruleExecutor struct {
 		requestMatcher      *requestMatcher
@@ -33,20 +34,14 @@ type (
 		mu                  sync.RWMutex
 	}
 
-	// requestMatcher 请求匹配器
+	// requestMatcher 请求的path、method匹配器
 	requestMatcher struct {
 		id     string
 		path   []byte
 		method []byte
 		re     *regexp.Regexp
-		raw    *types.ResourceRequestMatcher
+		raw    *resource.RequestMatcher
 	}
-
-	responseRegulationSet []*responseRegulation
-)
-
-var (
-	defaultRuleManager *ruleManager
 )
 
 func newRequestMatcher(path, method string) (*requestMatcher, error) {
@@ -55,7 +50,7 @@ func newRequestMatcher(path, method string) (*requestMatcher, error) {
 	}
 	re, err := regexp.Compile(path)
 	if err != nil {
-		Logger.Error("failed to compile regular expression", zap.String("path", path), zap.Error(err))
+		deepmock.Logger.Error("failed to compile regular expression", zap.String("path", path), zap.Error(err))
 		return nil, err
 	}
 
@@ -64,7 +59,7 @@ func newRequestMatcher(path, method string) (*requestMatcher, error) {
 		method: bytes.ToUpper([]byte(method)),
 		re:     re,
 	}
-	rm.id = GenID(rm.path, rm.method)
+	rm.id = deepmock.GenID(rm.path, rm.method)
 	return rm, nil
 }
 
@@ -369,7 +364,7 @@ func (rm *ruleManager) importRules(rules ...*types.ResourceRule) error {
 
 func (rm *ruleManager) importFromDatabase() error {
 	query, values, _ := builder.BuildSelect(storage.table, nil, []string{"*"})
-	rows, err := storage.db.Query(query, values...)
+	rows, err := storage.buildConnection().Query(query, values...)
 	if err != nil {
 		Logger.Error("failed to find records from database", zap.Error(err))
 		return err

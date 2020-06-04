@@ -1,4 +1,4 @@
-package deepmock
+package mock
 
 import (
 	"math/rand"
@@ -51,7 +51,7 @@ func TestRuleExecutor_Wrap(t *testing.T) {
 		},
 	}
 
-	data, _ := json.Marshal(rule)
+	data, _ := deepmock.json.Marshal(rule)
 
 	re, err := newRuleExecutor(rule)
 	assert.Nil(t, err)
@@ -59,7 +59,7 @@ func TestRuleExecutor_Wrap(t *testing.T) {
 
 	rule2 := re.wrap()
 	rule2.ID = ""
-	data2, _ := json.Marshal(rule2)
+	data2, _ := deepmock.json.Marshal(rule2)
 	assert.Equal(t, data, data2)
 }
 

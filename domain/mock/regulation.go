@@ -1,8 +1,8 @@
-package deepmock
+package mock
 
 import (
 	"github.com/valyala/fasthttp"
-	"github.com/wosai/deepmock/types"
+	"github.com/wosai/deepmock/types/resource"
 )
 
 type (
@@ -14,11 +14,7 @@ type (
 	}
 )
 
-func newResponseRegulation(res *types.ResourceResponseRegulation) (*responseRegulation, error) {
-	if err := res.Check(); err != nil {
-		return nil, err
-	}
-
+func newResponseRegulation(res *resource.ResponseRegulation) (*responseRegulation, error) {
 	rr := new(responseRegulation)
 	rr.isDefault = res.IsDefault
 
@@ -40,8 +36,8 @@ func (mr *responseRegulation) filter(req *fasthttp.Request) bool {
 	return mr.requestFilter.filter(req)
 }
 
-func (mr *responseRegulation) wrap() *types.ResourceResponseRegulation {
-	rrr := new(types.ResourceResponseRegulation)
+func (mr *responseRegulation) wrap() *resource.ResponseRegulation {
+	rrr := new(resource.ResponseRegulation)
 	rrr.IsDefault = mr.isDefault
 	rrr.Response = mr.responseTemplate.raw
 	rrr.Filter = mr.requestFilter.wrap()

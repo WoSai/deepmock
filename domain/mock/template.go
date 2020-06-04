@@ -1,4 +1,4 @@
-package deepmock
+package mock
 
 import (
 	"encoding/base64"
@@ -10,7 +10,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
-	"github.com/wosai/deepmock/types"
+	"github.com/wosai/deepmock"
+	"github.com/wosai/deepmock/types/resource"
 	"go.uber.org/zap"
 )
 
@@ -22,7 +23,7 @@ type (
 		header       *fasthttp.ResponseHeader
 		body         []byte
 		htmlTemplate *template.Template
-		raw          *types.ResourceResponseTemplate
+		raw          *resource.ResponseTemplate
 	}
 
 	renderContext struct {
@@ -41,7 +42,7 @@ var (
 	defaultTemplateFuncs template.FuncMap
 )
 
-func newResponseTemplate(rrt *types.ResourceResponseTemplate) (*responseTemplate, error) {
+func newResponseTemplate(rrt *resource.ResponseTemplate) (*responseTemplate, error) {
 	var body []byte
 	var err error
 	var isBin bool
@@ -49,7 +50,7 @@ func newResponseTemplate(rrt *types.ResourceResponseTemplate) (*responseTemplate
 		isBin = true
 		body, err = base64.StdEncoding.DecodeString(rrt.B64EncodedBody)
 		if err != nil {
-			Logger.Error("failed to decode base64encoded body data", zap.Error(err))
+			deepmock.Logger.Error("failed to decode base64encoded body data", zap.Error(err))
 			return nil, err
 		}
 	} else {
@@ -71,9 +72,9 @@ func newResponseTemplate(rrt *types.ResourceResponseTemplate) (*responseTemplate
 	}
 
 	if rt.isTemplate {
-		tmpl, err := template.New(GenRandomString(8)).Funcs(defaultTemplateFuncs).Parse(string(rt.body))
+		tmpl, err := template.New(deepmock.GenRandomString(8)).Funcs(defaultTemplateFuncs).Parse(string(rt.body))
 		if err != nil {
-			Logger.Error("failed to parse html template", zap.ByteString("template", rt.body), zap.Error(err))
+			deepmock.Logger.Error("failed to parse html template", zap.ByteString("template", rt.body), zap.Error(err))
 			return nil, err
 		}
 		rt.htmlTemplate = tmpl
@@ -153,6 +154,6 @@ func init() {
 	_ = RegisterTemplateFunc("timestamp", currentTimestamp)
 	_ = RegisterTemplateFunc("date", formatDate)
 	_ = RegisterTemplateFunc("plus", plus)
-	_ = RegisterTemplateFunc("rand_string", GenRandomString)
+	_ = RegisterTemplateFunc("rand_string", deepmock.GenRandomString)
 	_ = RegisterTemplateFunc("date_delta", dateDelta)
 }

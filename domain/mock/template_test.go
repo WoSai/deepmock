@@ -1,4 +1,4 @@
-package deepmock
+package mock
 
 import (
 	"bytes"
@@ -7,13 +7,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/wosai/deepmock/types"
+	"github.com/wosai/deepmock/types/resource"
 )
 
 func TestNewResponseTemplate(t *testing.T) {
-	res := &types.ResourceResponseTemplate{
+	res := &resource.ResponseTemplate{
 		IsTemplate:     true,
-		Header:         types.ResourceHeaderTemplate{"Content-Type": "application/json", "Authorization": "123123"},
+		Header:         resource.HeaderTemplate{"Content-Type": "application/json", "Authorization": "123123"},
 		StatusCode:     500,
 		Body:           "hello world",
 		B64EncodedBody: "aGVsbG8gZm9vYmFyIQ==",

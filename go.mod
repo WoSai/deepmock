@@ -11,6 +11,7 @@ require (
 	github.com/jacexh/requests v0.1.4
 	github.com/json-iterator/go v1.1.7
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/qastub/deepmock v0.4.1
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.4.0
 	github.com/valyala/fasthttp v1.4.0

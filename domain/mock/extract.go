@@ -1,13 +1,16 @@
-package deepmock
+package mock
 
 import (
 	"bytes"
 
+	jsoniter "github.com/json-iterator/go"
 	"github.com/valyala/fasthttp"
+	"github.com/wosai/deepmock"
 	"go.uber.org/zap"
 )
 
 var (
+	json                 = jsoniter.ConfigCompatibleWithStandardLibrary
 	formContentType      = []byte("application/x-www-form-urlencoded")
 	multipartContentType = []byte("multipart/form-data")
 	jsonContentType      = []byte("application/json")
@@ -44,7 +47,7 @@ func extractBodyAsParams(req *fasthttp.Request) (params, map[string]interface{})
 		p := make(params)
 		form, err := req.MultipartForm()
 		if err != nil {
-			Logger.Error("bad multipart form data", zap.Error(err))
+			deepmock.Logger.Error("bad multipart form data", zap.Error(err))
 			return nil, nil
 		}
 		for k, v := range form.Value {
@@ -56,7 +59,7 @@ func extractBodyAsParams(req *fasthttp.Request) (params, map[string]interface{})
 		j := make(map[string]interface{})
 		err := json.Unmarshal(req.Body(), &j)
 		if err != nil {
-			Logger.Error("failed to automatic unmarshal request body", zap.Error(err))
+			deepmock.Logger.Error("failed to automatic unmarshal request body", zap.Error(err))
 			return nil, nil
 		}
 		return nil, j

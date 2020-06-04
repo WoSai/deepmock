@@ -10,7 +10,20 @@ var (
 	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
+const (
+	// FilterModeAlwaysTrue 总是通过
+	FilterModeAlwaysTrue FilterMode = "always_true"
+	// FilterModeExact key/value精确模式
+	FilterModeExact FilterMode = "exact"
+	// FilterModeKeyword 关键字模板，即确保contains(a, b)结果为true
+	FilterModeKeyword FilterMode = "keyword"
+	// FilterModeRegular 正则表达式模式
+	FilterModeRegular FilterMode = "regular"
+)
+
 type (
+	FilterMode = string
+
 	CommonResource struct {
 		Code         int         `json:"code"`
 		Data         interface{} `json:"data,omitempty"`
@@ -45,6 +58,11 @@ type (
 
 	// Variable mock规则的自定义变量池
 	Variable map[string]interface{}
+
+	RequestMatcher struct {
+		Path   string
+		Method string
+	}
 
 	// Weight mock规则的权重变量池
 	Weight map[string]WeightingFactor

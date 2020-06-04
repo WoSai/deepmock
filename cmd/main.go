@@ -6,6 +6,7 @@ import (
 	"github.com/wosai/deepmock"
 	"github.com/wosai/deepmock/repository"
 	"github.com/wosai/deepmock/router"
+	"github.com/wosai/deepmock/service"
 	"github.com/wosai/deepmock/types"
 	"go.uber.org/zap"
 )
@@ -21,6 +22,9 @@ func main() {
 
 	// 连接数据库
 	repository.BuildDBConnection(opt.DB)
+
+	// 初始化service
+	service.BuildRuleService(repository.Rule)
 
 	// 初始化http handler
 	app := router.BuildRouter()

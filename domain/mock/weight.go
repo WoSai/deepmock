@@ -1,22 +1,22 @@
-package deepmock
+package mock
 
 import (
 	"math/rand"
 
-	"github.com/wosai/deepmock/types"
+	"github.com/wosai/deepmock/types/resource"
 )
 
 type (
 	weightingDice struct {
 		total   uint
 		storage []string
-		raw     types.ResourceWeightingFactor
+		raw     resource.WeightingFactor
 	}
 
 	weightingPicker map[string]*weightingDice
 )
 
-func newWeighingDice(res types.ResourceWeightingFactor) *weightingDice {
+func newWeighingDice(res resource.WeightingFactor) *weightingDice {
 	wp := &weightingDice{raw: res}
 	wp.preDistribute()
 	return wp
@@ -37,7 +37,7 @@ func (wp *weightingDice) dice() string {
 	return wp.storage[rand.Intn(int(wp.total))]
 }
 
-func (wp *weightingDice) patch(res types.ResourceWeightingFactor) {
+func (wp *weightingDice) patch(res resource.WeightingFactor) {
 	for nk, nv := range res {
 		wp.raw[nk] = nv
 	}
@@ -45,7 +45,7 @@ func (wp *weightingDice) patch(res types.ResourceWeightingFactor) {
 	wp.preDistribute()
 }
 
-func newWeightingPicker(res types.ResourceWeight) weightingPicker {
+func newWeightingPicker(res resource.Weight) weightingPicker {
 	wfh := make(weightingPicker)
 	for k, v := range res {
 		wfh[k] = newWeighingDice(v)
@@ -53,12 +53,12 @@ func newWeightingPicker(res types.ResourceWeight) weightingPicker {
 	return wfh
 }
 
-func (wfg weightingPicker) wrap() types.ResourceWeight {
+func (wfg weightingPicker) wrap() resource.Weight {
 	if wfg == nil {
 		return nil
 	}
 
-	ret := make(types.ResourceWeight)
+	ret := make(resource.Weight)
 	for k, v := range wfg {
 		ret[k] = v.raw
 	}
@@ -73,7 +73,7 @@ func (wfg weightingPicker) dice() params {
 	return p
 }
 
-func (wfg weightingPicker) patch(res types.ResourceWeight) {
+func (wfg weightingPicker) patch(res resource.Weight) {
 	for k, v := range res {
 		d, ok := wfg[k]
 		if ok {

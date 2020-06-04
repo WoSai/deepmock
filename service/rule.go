@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	RuleService rule
-	json        = jsoniter.ConfigCompatibleWithStandardLibrary
+	Rule *rule
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 type (
@@ -24,6 +24,10 @@ type (
 		repo types.RuleRepository
 	}
 )
+
+func BuildRuleService(repo types.RuleRepository) {
+	Rule = &rule{repo: repo}
+}
 
 func (srv rule) CreateRule(rule *resource.Rule) (string, error) {
 	if err := ValidateRule(rule); err != nil {

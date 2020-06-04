@@ -16,7 +16,6 @@ func ValidateRule(rule *resource.Rule) error {
 	if rule.Responses == nil {
 		return errors.New("missing response regulations")
 	}
-
 	return validateResponseRegulationSet(rule.Responses)
 }
 
@@ -27,6 +26,32 @@ func validateResponseRegulation(rr *resource.ResponseRegulation) error {
 	if rr.Response == nil {
 		return errors.New("missing response template")
 	}
+	// 如果不是默认规则，则必须传入filter
+	if !rr.IsDefault {
+		if rr.Filter.Body != nil {
+			if err := validateBodyFilterParameters(rr.Filter.Body); err != nil {
+				return err
+			}
+		}
+
+		if rr.Filter.Query != nil {
+			if err := validateQueryFilterParameters(rr.Filter.Query); err != nil {
+				return err
+			}
+		}
+
+		if rr.Filter.Header != nil {
+			if err := validateHeaderFilterParameters(rr.Filter.Header); err != nil {
+				return err
+			}
+		}
+	}
+
+	return validateResponseTemplate(rr.Response)
+}
+
+// validateResponseTemplate todo
+func validateResponseTemplate(template *resource.ResponseTemplate) error {
 	return nil
 }
 

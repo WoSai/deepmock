@@ -93,12 +93,12 @@ func HandleCreateRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 		return
 	}
 
-	rid, err := service.RuleService.CreateRule(rule)
+	rid, err := service.Rule.CreateRule(rule)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
-	rule, err = service.RuleService.GetRule(rid)
+	rule, err = service.Rule.GetRule(rid)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -110,7 +110,7 @@ func HandleCreateRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 func HandleGetRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 	ruleID := parsePathVar(apiGetRulePath, ctx.RequestURI())
 
-	rule, err := service.RuleService.GetRule(ruleID)
+	rule, err := service.Rule.GetRule(ruleID)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -126,7 +126,7 @@ func HandleDeleteRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 	}
 
 	//defaultRuleManager.deleteRule(res)
-	err := service.RuleService.DeleteRule(res.ID)
+	err := service.Rule.DeleteRule(res.ID)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -141,12 +141,12 @@ func HandlePutRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 		return
 	}
 
-	err := service.RuleService.PutRule(res)
+	err := service.Rule.PutRule(res)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
-	rule, err := service.RuleService.GetRule(res.ID)
+	rule, err := service.Rule.GetRule(res.ID)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -161,12 +161,12 @@ func HandlePatchRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 		return
 	}
 
-	err := service.RuleService.PatchRule(res)
+	err := service.Rule.PatchRule(res)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
-	rule, err := service.RuleService.GetRule(res.ID)
+	rule, err := service.Rule.GetRule(res.ID)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -182,7 +182,7 @@ func HandleExportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
 	//	rules[k] = v.wrap()
 	//}
 
-	rules, err := service.RuleService.Export()
+	rules, err := service.Rule.Export()
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -197,7 +197,7 @@ func HandleImportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
 		return
 	}
 
-	err := service.RuleService.Import(rules...)
+	err := service.Rule.Import(rules...)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return

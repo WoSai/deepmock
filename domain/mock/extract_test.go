@@ -1,4 +1,4 @@
-package deepmock
+package mock
 
 import (
 	"mime/multipart"
