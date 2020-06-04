@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"errors"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -84,79 +83,3 @@ type (
 	// ResponseRegulationSet mock response的规则集合
 	ResponseRegulationSet []*ResponseRegulation
 )
-
-func (rmr *ResponseRegulation) Check() error {
-	if !rmr.IsDefault && rmr.Filter == nil {
-		return errors.New("missing filter rule, or set as default response")
-	}
-	if rmr.Response == nil {
-		return errors.New("missing response template")
-	}
-	return nil
-}
-
-func (rr Rule) Check() error {
-	if rr.Path == "" {
-		return errors.New("missing mock api path")
-	}
-	if rr.Method == "" {
-		return errors.New("missing mock api method")
-	}
-	if rr.Responses == nil || len(rr.Responses) == 0 {
-		return errors.New("missing response regulations")
-	}
-	return rr.Responses.Check()
-}
-
-func (rrr ResponseRegulationSet) Check() error {
-	var d int
-	if len(rrr) == 0 {
-		return errors.New("missing mock response")
-	}
-
-	for _, r := range rrr {
-		if r.IsDefault {
-			d++
-		}
-		if err := r.Check(); err != nil {
-			return err
-		}
-	}
-	if d != 1 {
-		return errors.New("no default response or provided more than one")
-	}
-	return nil
-}
-
-func (hfp HeaderFilterParameters) Check() error {
-	if hfp == nil {
-		return nil
-	}
-
-	if _, ok := hfp["mode"]; !ok {
-		return errors.New("missing filter mode")
-	}
-	return nil
-}
-
-func (qfp QueryFilterParameters) Check() error {
-	if qfp == nil {
-		return nil
-	}
-
-	if _, ok := qfp["mode"]; !ok {
-		return errors.New("missing filter mode")
-	}
-	return nil
-}
-
-func (bfp BodyFilterParameters) Check() error {
-	if bfp == nil {
-		return nil
-	}
-
-	if _, ok := bfp["mode"]; !ok {
-		return errors.New("missing filter mode")
-	}
-	return nil
-}
