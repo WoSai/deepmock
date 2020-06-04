@@ -23,7 +23,7 @@ jobs:
       - uses: docker/build-push-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_ORG_USERNAME }}
-          password: ${{ secrets.secrets.DOCKERHUB_ORG_ACCESS_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_ORG_ACCESS_TOKEN }}
           repository: wosai/deepmock
           tag_with_ref: true
           tag_with_sha: true
