@@ -5,8 +5,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/wosai/deepmock/misc"
+
 	"github.com/valyala/fasthttp"
-	"github.com/wosai/deepmock"
 	"github.com/wosai/deepmock/types/resource"
 	"go.uber.org/zap"
 )
@@ -58,7 +59,7 @@ func (hf *headerFilter) withParameters(p resource.HeaderFilterParameters) error 
 		for k, v := range hf.params {
 			hf.regulars[k], err = regexp.Compile(v)
 			if err != nil {
-				deepmock.Logger.Error("failed to compile regular expression", zap.String("expression", v), zap.Error(err))
+				misc.Logger.Error("failed to compile regular expression", zap.String("expression", v), zap.Error(err))
 				return err
 			}
 		}
@@ -98,7 +99,7 @@ func (hf *headerFilter) filter(h *fasthttp.RequestHeader) bool {
 		return hf.filterByRegular(h)
 
 	default:
-		deepmock.Logger.Warn("found unsupported filter mode in headerFilter", zap.String("mode", hf.mode))
+		misc.Logger.Warn("found unsupported filter mode in headerFilter", zap.String("mode", hf.mode))
 		return false
 	}
 }
@@ -145,7 +146,7 @@ func (bf *bodyFilter) withParameters(params resource.BodyFilterParameters) error
 		var err error
 		bf.regular, err = regexp.Compile(bf.params["regular"])
 		if err != nil {
-			deepmock.Logger.Error("failed to compile regular expression", zap.String("expression", bf.params["regular"]), zap.Error(err))
+			misc.Logger.Error("failed to compile regular expression", zap.String("expression", bf.params["regular"]), zap.Error(err))
 			return err
 		}
 		delete(bf.params, "regular")
@@ -194,7 +195,7 @@ func (bf *bodyFilter) filter(body []byte) bool {
 		return bf.regular.Match(body)
 
 	default:
-		deepmock.Logger.Warn("found unsupported filter mode in bodyFilter", zap.String("mode", bf.mode))
+		misc.Logger.Warn("found unsupported filter mode in bodyFilter", zap.String("mode", bf.mode))
 		return false
 	}
 }
@@ -214,7 +215,7 @@ func (qf *queryFilter) withParameters(query resource.QueryFilterParameters) erro
 		for k, v := range qf.params {
 			qf.regulars[k], err = regexp.Compile(v)
 			if err != nil {
-				deepmock.Logger.Error("failed to compile regular expression", zap.String("expression", v), zap.Error(err))
+				misc.Logger.Error("failed to compile regular expression", zap.String("expression", v), zap.Error(err))
 				return err
 			}
 		}
@@ -253,7 +254,7 @@ func (qf *queryFilter) filter(query *fasthttp.Args) bool {
 		return qf.filterByRegular(query)
 
 	default:
-		deepmock.Logger.Warn("found unsupported filter mode in queryFilter", zap.String("mode", qf.mode))
+		misc.Logger.Warn("found unsupported filter mode in queryFilter", zap.String("mode", qf.mode))
 		return false
 	}
 }

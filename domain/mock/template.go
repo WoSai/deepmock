@@ -8,9 +8,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/wosai/deepmock/misc"
+
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
-	"github.com/wosai/deepmock"
 	"github.com/wosai/deepmock/types/resource"
 	"go.uber.org/zap"
 )
@@ -50,7 +51,7 @@ func newResponseTemplate(rrt *resource.ResponseTemplate) (*responseTemplate, err
 		isBin = true
 		body, err = base64.StdEncoding.DecodeString(rrt.B64EncodedBody)
 		if err != nil {
-			deepmock.Logger.Error("failed to decode base64encoded body data", zap.Error(err))
+			misc.Logger.Error("failed to decode base64encoded body data", zap.Error(err))
 			return nil, err
 		}
 	} else {
@@ -72,9 +73,9 @@ func newResponseTemplate(rrt *resource.ResponseTemplate) (*responseTemplate, err
 	}
 
 	if rt.isTemplate {
-		tmpl, err := template.New(deepmock.GenRandomString(8)).Funcs(defaultTemplateFuncs).Parse(string(rt.body))
+		tmpl, err := template.New(misc.GenRandomString(8)).Funcs(defaultTemplateFuncs).Parse(string(rt.body))
 		if err != nil {
-			deepmock.Logger.Error("failed to parse html template", zap.ByteString("template", rt.body), zap.Error(err))
+			misc.Logger.Error("failed to parse html template", zap.ByteString("template", rt.body), zap.Error(err))
 			return nil, err
 		}
 		rt.htmlTemplate = tmpl
@@ -154,6 +155,6 @@ func init() {
 	_ = RegisterTemplateFunc("timestamp", currentTimestamp)
 	_ = RegisterTemplateFunc("date", formatDate)
 	_ = RegisterTemplateFunc("plus", plus)
-	_ = RegisterTemplateFunc("rand_string", deepmock.GenRandomString)
+	_ = RegisterTemplateFunc("rand_string", misc.GenRandomString)
 	_ = RegisterTemplateFunc("date_delta", dateDelta)
 }

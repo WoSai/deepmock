@@ -1,4 +1,4 @@
-package types
+package option
 
 type (
 	Option struct {

@@ -1,9 +1,10 @@
-package service
+package application
 
 import (
 	"strings"
 
-	"github.com/wosai/deepmock"
+	"github.com/wosai/deepmock/misc"
+
 	"github.com/wosai/deepmock/types/entity"
 	"github.com/wosai/deepmock/types/resource"
 )
@@ -15,7 +16,7 @@ func convertAsEntity(rule *resource.Rule) (*entity.Rule, error) {
 		Disabled: rule.Disabled,
 	}
 	if rule.ID == "" {
-		rule.ID = deepmock.GenID([]byte(re.Path), []byte(re.Method))
+		rule.ID = misc.GenID([]byte(re.Path), []byte(re.Method))
 	}
 	re.ID = rule.ID
 	if rule.Variable != nil {

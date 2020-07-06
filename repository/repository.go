@@ -7,19 +7,17 @@ import (
 
 	"github.com/didi/gendry/manager"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/wosai/deepmock"
-	"github.com/wosai/deepmock/types"
+	"github.com/wosai/deepmock/misc"
+	"github.com/wosai/deepmock/option"
 	"go.uber.org/zap"
 )
 
 var (
 	db   *sql.DB
 	once sync.Once
-	// Rule 该模块暴露的全局RuleRepository对象
-	Rule types.RuleRepository
 )
 
-func BuildDBConnection(opt types.DatabaseOption) *sql.DB {
+func BuildDBConnection(opt option.DatabaseOption) *sql.DB {
 	once.Do(func() {
 		var err error
 
@@ -34,19 +32,16 @@ func BuildDBConnection(opt types.DatabaseOption) *sql.DB {
 				manager.SetLoc("Local"),
 			).Port(opt.Port).Open(true)
 			if err != nil {
-				deepmock.Logger.Error("failed to connect to mysql", zap.Any("params", opt), zap.Error(err))
+				misc.Logger.Error("failed to connect to mysql", zap.Any("params", opt), zap.Error(err))
 				time.Sleep(2 * time.Second)
 				continue
 			}
-			deepmock.Logger.Info("accessed mysql database", zap.Any("params", opt))
+			misc.Logger.Info("accessed mysql database", zap.Any("params", opt))
 			break
 		}
 		if err != nil {
 			panic(err)
 		}
-
-		// 数据库连接成功
-		Rule = NewRuleRepository(db)
 	})
 	return db
 }

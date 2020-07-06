@@ -5,27 +5,36 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/wosai/deepmock"
-	"go.uber.org/zap"
+	"github.com/wosai/deepmock/types"
 
 	"github.com/didi/gendry/builder"
 	"github.com/didi/gendry/scanner"
-	"github.com/wosai/deepmock/types"
+	"github.com/wosai/deepmock/domain"
+	"github.com/wosai/deepmock/misc"
 	"github.com/wosai/deepmock/types/entity"
+	"go.uber.org/zap"
 )
 
 type (
-	RuleStorage struct {
+	RuleRepositoryImpl struct {
 		db    *sql.DB
 		table string
 	}
 )
 
-func NewRuleRepository(db *sql.DB) types.RuleRepository {
-	return &RuleStorage{db: db, table: "rule"}
+func convertEntity(rule *domain.Rule) *types.RuleDo {
+	return nil
 }
 
-func (r *RuleStorage) CreateRule(ctx context.Context, rule *entity.Rule) error {
+func convertDataObject(rule *types.RuleDo) *domain.Rule {
+	return nil
+}
+
+func NewRuleRepository(db *sql.DB) *RuleRepositoryImpl {
+	return &RuleRepositoryImpl{db: db, table: "rule"}
+}
+
+func (r *RuleRepositoryImpl) CreateRule(ctx context.Context, rule *domain.Rule) error {
 	record, err := scanner.Map(rule, "ddb")
 	if err != nil {
 		return err
@@ -38,12 +47,12 @@ func (r *RuleStorage) CreateRule(ctx context.Context, rule *entity.Rule) error {
 	if err != nil {
 		return err
 	}
-	deepmock.Logger.Info(query, zap.Any("values", values))
+	misc.Logger.Info(query, zap.Any("values", values))
 	_, err = r.db.ExecContext(ctx, query, values...)
 	return err
 }
 
-func (r *RuleStorage) UpdateRule(ctx context.Context, rule *entity.Rule) error {
+func (r *RuleRepositoryImpl) UpdateRule(ctx context.Context, rule *domain.Rule) error {
 	cond, values, err := builder.BuildUpdate(
 		r.table,
 		map[string]interface{}{"id": rule.ID},
@@ -57,18 +66,18 @@ func (r *RuleStorage) UpdateRule(ctx context.Context, rule *entity.Rule) error {
 	if err != nil {
 		return err
 	}
-	deepmock.Logger.Info(cond, zap.Any("values", values))
+	misc.Logger.Info(cond, zap.Any("values", values))
 	_, err = r.db.ExecContext(ctx, cond, values...)
 	return err
 }
 
-func (r *RuleStorage) GetRuleByID(ctx context.Context, rid string) (*entity.Rule, error) {
+func (r *RuleRepositoryImpl) GetRuleByID(ctx context.Context, rid string) (*domain.Rule, error) {
 	query, values, _ := builder.BuildSelect(
 		r.table,
 		map[string]interface{}{"id": rid, "_limit": []uint{1}},
 		[]string{"*"},
 	)
-	deepmock.Logger.Info(query, zap.Any("values", values))
+	misc.Logger.Info(query, zap.Any("values", values))
 	rows, err := r.db.QueryContext(ctx, query, values...)
 	if err != nil {
 		return nil, err
@@ -86,19 +95,19 @@ func (r *RuleStorage) GetRuleByID(ctx context.Context, rid string) (*entity.Rule
 	return rules[0], nil
 }
 
-func (r *RuleStorage) DeleteRule(ctx context.Context, rid string) error {
+func (r *RuleRepositoryImpl) DeleteRule(ctx context.Context, rid string) error {
 	cond, values, err := builder.BuildDelete(r.table, map[string]interface{}{"id": rid})
 	if err != nil {
 		return err
 	}
-	deepmock.Logger.Info(cond, zap.Any("values", values))
+	misc.Logger.Info(cond, zap.Any("values", values))
 	_, err = r.db.ExecContext(ctx, cond, values...)
 	return err
 }
 
-func (r *RuleStorage) Export(ctx context.Context) ([]*entity.Rule, error) {
+func (r *RuleRepositoryImpl) Export(ctx context.Context) ([]*domain.Rule, error) {
 	query, values, _ := builder.BuildSelect(r.table, nil, []string{"*"})
-	deepmock.Logger.Info(query, zap.Any("values", values))
+	misc.Logger.Info(query, zap.Any("values", values))
 	rows, err := r.db.QueryContext(ctx, query, values...)
 	if err != nil {
 		return nil, err
@@ -109,7 +118,7 @@ func (r *RuleStorage) Export(ctx context.Context) ([]*entity.Rule, error) {
 	return rules, err
 }
 
-func (r *RuleStorage) Import(ctx context.Context, rules ...*entity.Rule) error {
+func (r *RuleRepositoryImpl) Import(ctx context.Context, rules ...*domain.Rule) error {
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
 		return err
@@ -117,7 +126,7 @@ func (r *RuleStorage) Import(ctx context.Context, rules ...*entity.Rule) error {
 
 	// 清空数据库
 	cond, values, _ := builder.BuildDelete(r.table, nil)
-	deepmock.Logger.Info(cond, zap.Any("values", values))
+	misc.Logger.Info(cond, zap.Any("values", values))
 	_, err = tx.ExecContext(ctx, cond, values...)
 	if err != nil {
 		_ = tx.Rollback()
@@ -141,7 +150,7 @@ func (r *RuleStorage) Import(ctx context.Context, rules ...*entity.Rule) error {
 		_ = tx.Rollback()
 		return err
 	}
-	deepmock.Logger.Info(cond, zap.Any("values", values))
+	misc.Logger.Info(cond, zap.Any("values", values))
 	_, err = tx.ExecContext(ctx, cond, values...)
 	if err != nil {
 		_ = tx.Rollback()

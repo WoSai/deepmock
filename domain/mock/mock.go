@@ -7,12 +7,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wosai/deepmock/misc"
+
 	"github.com/didi/gendry/builder"
 	"github.com/didi/gendry/scanner"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/qastub/deepmock/types"
 	"github.com/valyala/fasthttp"
-	"github.com/wosai/deepmock"
 	"github.com/wosai/deepmock/types/resource"
 	"go.uber.org/zap"
 )
@@ -50,7 +51,7 @@ func newRequestMatcher(path, method string) (*requestMatcher, error) {
 	}
 	re, err := regexp.Compile(path)
 	if err != nil {
-		deepmock.Logger.Error("failed to compile regular expression", zap.String("path", path), zap.Error(err))
+		misc.Logger.Error("failed to compile regular expression", zap.String("path", path), zap.Error(err))
 		return nil, err
 	}
 
@@ -59,7 +60,7 @@ func newRequestMatcher(path, method string) (*requestMatcher, error) {
 		method: bytes.ToUpper([]byte(method)),
 		re:     re,
 	}
-	rm.id = deepmock.GenID(rm.path, rm.method)
+	rm.id = misc.GenID(rm.path, rm.method)
 	return rm, nil
 }
 

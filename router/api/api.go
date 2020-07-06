@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/wosai/deepmock/service"
+	"github.com/wosai/deepmock/misc"
+
+	"github.com/wosai/deepmock/application"
 
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/valyala/fasthttp"
-	"github.com/wosai/deepmock"
 	"github.com/wosai/deepmock/types"
 	"github.com/wosai/deepmock/types/resource"
 	"go.uber.org/zap"
@@ -93,12 +94,12 @@ func HandleCreateRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 		return
 	}
 
-	rid, err := service.Rule.CreateRule(rule)
+	rid, err := application.Rule.CreateRule(rule)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
-	rule, err = service.Rule.GetRule(rid)
+	rule, err = application.Rule.GetRule(rid)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -110,7 +111,7 @@ func HandleCreateRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 func HandleGetRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 	ruleID := parsePathVar(apiGetRulePath, ctx.RequestURI())
 
-	rule, err := service.Rule.GetRule(ruleID)
+	rule, err := application.Rule.GetRule(ruleID)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -126,7 +127,7 @@ func HandleDeleteRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 	}
 
 	//defaultRuleManager.deleteRule(res)
-	err := service.Rule.DeleteRule(res.ID)
+	err := application.Rule.DeleteRule(res.ID)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -141,12 +142,12 @@ func HandlePutRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 		return
 	}
 
-	err := service.Rule.PutRule(res)
+	err := application.Rule.PutRule(res)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
-	rule, err := service.Rule.GetRule(res.ID)
+	rule, err := application.Rule.GetRule(res.ID)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -161,12 +162,12 @@ func HandlePatchRule(ctx *fasthttp.RequestCtx, _ func(error)) {
 		return
 	}
 
-	err := service.Rule.PatchRule(res)
+	err := application.Rule.PatchRule(res)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
-	rule, err := service.Rule.GetRule(res.ID)
+	rule, err := application.Rule.GetRule(res.ID)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -182,7 +183,7 @@ func HandleExportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
 	//	rules[k] = v.wrap()
 	//}
 
-	rules, err := service.Rule.Export()
+	rules, err := application.Rule.Export()
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -197,7 +198,7 @@ func HandleImportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
 		return
 	}
 
-	err := service.Rule.Import(rules...)
+	err := application.Rule.Import(rules...)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
@@ -207,7 +208,7 @@ func HandleImportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
 
 func bindBody(ctx *fasthttp.RequestCtx, v interface{}) error {
 	if err := json.Unmarshal(ctx.Request.Body(), v); err != nil {
-		deepmock.Logger.Error("failed to parse request body", zap.ByteString("path", ctx.Request.URI().Path()), zap.ByteString("method", ctx.Request.Header.Method()), zap.Error(err))
+		misc.Logger.Error("failed to parse request body", zap.ByteString("path", ctx.Request.URI().Path()), zap.ByteString("method", ctx.Request.Header.Method()), zap.Error(err))
 		ctx.Response.Header.SetContentType("application/json")
 		ctx.Response.SetStatusCode(fasthttp.StatusOK)
 
