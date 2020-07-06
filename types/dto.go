@@ -8,12 +8,12 @@ type (
 	}
 
 	RuleDTO struct {
-		ID       string           `json:"id,omitempty"`
-		Path     string           `json:"path,omitempty"`
-		Method   string           `json:"method,omitempty"`
-		Variable VariableDTO      `json:"variable,omitempty"`
-		Weight   WeightDTO        `json:"weight,omitempty"`
-		Response []*RegulationDTO `json:"responses,omitempty"`
+		ID          string           `json:"id,omitempty"`
+		Path        string           `json:"path,omitempty"`
+		Method      string           `json:"method,omitempty"`
+		Variable    VariableDTO      `json:"variable,omitempty"`
+		Weight      WeightDTO        `json:"weight,omitempty"`
+		Regulations []*RegulationDTO `json:"responses,omitempty"`
 	}
 
 	VariableDTO map[string]interface{}

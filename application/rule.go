@@ -3,11 +3,13 @@ package application
 import (
 	"context"
 	"errors"
+	"net/http"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/wosai/deepmock/domain"
 	"github.com/wosai/deepmock/misc"
+	"github.com/wosai/deepmock/types"
 	"github.com/wosai/deepmock/types/entity"
 	"github.com/wosai/deepmock/types/resource"
 	"go.uber.org/zap"
@@ -51,26 +53,62 @@ func BuildRuleService(rr domain.RuleRepository, er domain.ExecutorRepository, jo
 	return MockApplication
 }
 
-func (srv rule) CreateRule(rule *resource.Rule) (string, error) {
-	if err := ValidateRule(rule); err != nil {
-		misc.Logger.Error("failed to validate rule content", zap.Error(err))
-		return "", err
+func convertRuleDTO(rule *types.RuleDTO) *domain.Rule {
+	r := &domain.Rule{
+		ID:       rule.ID,
+		Path:     rule.Path,
+		Method:   rule.Method,
+		Variable: rule.Variable,
+		Weight:   rule.Weight,
 	}
+	r.Regulations = make([]*domain.Regulation, len(rule.Regulations))
 
-	re, err := convertAsEntity(rule)
-	if err != nil {
-		misc.Logger.Error("failed to convert as an entity object", zap.Error(err))
+	for index, regulation := range rule.Regulations {
+		r.Regulations[index] = convertRegulationDTO(regulation)
 	}
-	err = srv.repo.CreateRule(context.Background(), re)
-	if err != nil {
-		misc.Logger.Error("failed to create rule record", zap.Error(err))
-		return "", err
-	}
-	misc.Logger.Info("created new rule record with id", zap.String("rule_id", re.ID))
-	return re.ID, nil
+	return r
 }
 
-func (srv rule) GetRule(rid string) (*resource.Rule, error) {
+func convertRegulationDTO(reg *types.RegulationDTO) *domain.Regulation {
+	r := &domain.Regulation{IsDefault: reg.IsDefault}
+	if reg.Filter != nil {
+		r.Filter = &domain.Filter{
+			Query:  reg.Filter.Query,
+			Header: reg.Filter.Header,
+			Body:   reg.Filter.Body,
+		}
+	}
+	if reg.Template != nil {
+		r.Template = &domain.Template{
+			IsTemplate:     reg.Template.IsTemplate,
+			Header:         reg.Template.Header,
+			Body:           reg.Template.Body,
+			B64EncodedBody: reg.Template.B64EncodeBody,
+		}
+		if reg.Template.StatusCode == 0 {
+			r.Template.StatusCode = http.StatusOK
+		}
+	}
+	return r
+}
+
+func (srv *mockApplication) CreateRule(ctx context.Context, rule *types.RuleDTO) (string, error) {
+	ru := convertRuleDTO(rule)
+	rid, _ := ru.SupplyID()
+	if err := ru.Validate(); err != nil {
+		misc.Logger.Error("failed to validate rule content", zap.Error(err))
+		return rid, err
+	}
+
+	if err := srv.rule.CreateRule(ctx, ru); err != nil {
+		misc.Logger.Error("failed to create rule record", zap.Error(err))
+		return rid, err
+	}
+	misc.Logger.Info("created new rule record with id", zap.String("rule_id", ru.ID))
+	return rid, nil
+}
+
+func (srv *mockApplication) GetRule(rid string) (*resource.Rule, error) {
 	if rid == "" {
 		misc.Logger.Error("missing rule id")
 		return nil, errors.New("missing rule id")

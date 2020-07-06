@@ -195,9 +195,9 @@ func TestRuleManager_UpdateRule(t *testing.T) {
 
 	//r2 := &types.ResourceRule{
 	//	Request: &types.ResourceRequestMatcher{Path: "/api/v1/store/[0-9]+", Method: "GET"},
-	//	Responses: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
+	//	Regulations: types.ResourceResponseRegulationSet{&types.ResourceResponseRegulation{
 	//		IsDefault: true,
-	//		Response:  &types.ResourceResponseTemplate{Body: "hello store"},
+	//		Regulations:  &types.ResourceResponseTemplate{Body: "hello store"},
 	//	}},
 	//}
 

@@ -89,17 +89,17 @@ func render(re *ruleExecutor, rt *responseTemplate, ctx *fasthttp.RequestCtx) {
 
 // HandleCreateRule 创建规则接口
 func HandleCreateRule(ctx *fasthttp.RequestCtx, _ func(error)) {
-	rule := new(resource.Rule)
+	rule := new(types.RuleDTO)
 	if err := bindBody(ctx, rule); err != nil {
 		return
 	}
 
-	rid, err := application.Rule.CreateRule(rule)
+	rid, err := application.MockApplication.CreateRule(rule)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}
-	rule, err = application.Rule.GetRule(rid)
+	rule, err = application.MockApplication.GetRule(rid)
 	if err != nil {
 		renderFailedAPIResponse(&ctx.Response, err)
 		return

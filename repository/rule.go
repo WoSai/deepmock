@@ -59,7 +59,7 @@ func (r *RuleRepositoryImpl) UpdateRule(ctx context.Context, rule *domain.Rule) 
 		map[string]interface{}{
 			"variable":  rule.Variable,
 			"weight":    rule.Weight,
-			"responses": rule.Responses,
+			"responses": rule.Regulations,
 			"version":   rule.Version + 1,
 		},
 	)
