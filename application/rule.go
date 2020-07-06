@@ -2,22 +2,17 @@ package application
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/wosai/deepmock/domain"
 	"github.com/wosai/deepmock/misc"
 	"github.com/wosai/deepmock/types"
-	"github.com/wosai/deepmock/types/entity"
-	"github.com/wosai/deepmock/types/resource"
 	"go.uber.org/zap"
 )
 
 var (
 	MockApplication *mockApplication
-	json            = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 type (
@@ -92,6 +87,43 @@ func convertRegulationDTO(reg *types.RegulationDTO) *domain.Regulation {
 	return r
 }
 
+func convertRuleEntity(rule *domain.Rule) *types.RuleDTO {
+	r := &types.RuleDTO{
+		ID:       rule.ID,
+		Path:     rule.Path,
+		Method:   rule.Method,
+		Variable: rule.Variable,
+		Weight:   rule.Weight,
+	}
+	r.Regulations = make([]*types.RegulationDTO, len(rule.Regulations))
+	for index, regulation := range rule.Regulations {
+		r.Regulations[index] = convertRegulationVO(regulation)
+	}
+	return r
+}
+
+func convertRegulationVO(reg *domain.Regulation) *types.RegulationDTO {
+	r := &types.RegulationDTO{
+		IsDefault: reg.IsDefault,
+		Template: &types.TemplateDTO{
+			IsTemplate:    reg.Template.IsTemplate,
+			Header:        reg.Template.Header,
+			StatusCode:    reg.Template.StatusCode,
+			Body:          reg.Template.Body,
+			B64EncodeBody: reg.Template.B64EncodedBody,
+		},
+	}
+
+	if reg.Filter != nil {
+		r.Filter = &types.FilterDTO{
+			Header: reg.Filter.Header,
+			Query:  reg.Filter.Query,
+			Body:   reg.Filter.Body,
+		}
+	}
+	return r
+}
+
 func (srv *mockApplication) CreateRule(ctx context.Context, rule *types.RuleDTO) (string, error) {
 	ru := convertRuleDTO(rule)
 	rid, _ := ru.SupplyID()
@@ -108,163 +140,99 @@ func (srv *mockApplication) CreateRule(ctx context.Context, rule *types.RuleDTO)
 	return rid, nil
 }
 
-func (srv *mockApplication) GetRule(rid string) (*resource.Rule, error) {
-	if rid == "" {
-		misc.Logger.Error("missing rule id")
-		return nil, errors.New("missing rule id")
-	}
-	re, err := srv.repo.GetRuleByID(context.Background(), rid)
+func (srv *mockApplication) GetRule(ctx context.Context, rid string) (*types.RuleDTO, error) {
+	re, err := srv.rule.GetRuleByID(ctx, rid)
 	if err != nil {
 		misc.Logger.Error("failed to find rule record", zap.String("rule_id", rid), zap.Error(err))
 		return nil, err
 	}
-	rs, err := convertAsResource(re)
-	if err != nil {
-		misc.Logger.Error("failed to convert as resource", zap.String("rule_id", re.ID), zap.Error(err))
+	if err := re.Validate(); err != nil {
+		misc.Logger.Error("failed to validate rule content", zap.String("rule_id", rid), zap.Error(err))
+		return nil, err
 	}
-	return rs, err
+	rule := convertRuleEntity(re)
+	return rule, nil
 }
 
-func (srv rule) DeleteRule(rid string) error {
-	if rid == "" {
-		return errors.New("missing rule id")
-	}
-	if err := srv.repo.DeleteRule(context.TODO(), rid); err != nil {
+func (srv *mockApplication) DeleteRule(ctx context.Context, rid string) error {
+	if err := srv.rule.DeleteRule(ctx, rid); err != nil {
 		misc.Logger.Error("failed to delete rule entity", zap.String("rule_id", rid), zap.Error(err))
 		return err
 	}
 	return nil
 }
 
-func (srv rule) PutRule(nr *resource.Rule) error {
-	or, err := srv.GetRule(nr.ID)
+func (srv *mockApplication) PutRule(ctx context.Context, rule *types.RuleDTO) error {
+	or, err := srv.rule.GetRuleByID(ctx, rule.ID)
 	if err != nil {
-		return err
-	}
-	nr.ID = or.ID
-	nr.Path = or.Path
-	nr.Method = or.Method
-	nr.Version = or.Version
-	if err := ValidateRule(nr); err != nil {
-		misc.Logger.Error("failed to validate rule entity", zap.String("rule_id", nr.ID), zap.Error(err))
+		misc.Logger.Error("cannot found rule record with id", zap.String("rule_id", rule.ID), zap.Error(err))
 		return err
 	}
 
-	re, err := convertAsEntity(nr)
-	if err != nil {
-		misc.Logger.Error("failed to convert as rule entity", zap.String("rule_id", nr.ID), zap.Error(err))
+	nr := convertRuleDTO(rule)
+	if err := or.Put(nr); err != nil {
+		misc.Logger.Error("failed to validate rule after put", zap.String("rule_id", rule.ID), zap.Error(err))
 		return err
 	}
-	if err = srv.repo.UpdateRule(context.TODO(), re); err != nil {
-		misc.Logger.Error("failed to update rule record", zap.String("rule_id", nr.ID), zap.Error(err))
+	if err := srv.rule.UpdateRule(ctx, or); err != nil {
+		misc.Logger.Error("failed to update rule record", zap.String("rule_id", rule.ID), zap.Error(err))
 		return err
 	}
-	misc.Logger.Info("replaced rule entity", zap.String("rule_id", nr.ID))
+	misc.Logger.Info("update the rule record with id", zap.String("rule_id", rule.ID))
 	return nil
 }
 
-func (srv rule) PatchRule(nr *resource.Rule) error {
-	re, err := srv.repo.GetRuleByID(context.TODO(), nr.ID)
+func (srv *mockApplication) PatchRule(ctx context.Context, rule *types.RuleDTO) error {
+	or, err := srv.rule.GetRuleByID(ctx, rule.ID)
 	if err != nil {
+		misc.Logger.Error("cannot found rule record with id", zap.String("rule_id", rule.ID), zap.Error(err))
 		return err
 	}
 
-	rs, err := convertAsResource(re)
-	if err != nil {
-		misc.Logger.Error("failed to convert as resource", zap.String("rule_id", re.ID), zap.Error(err))
+	nr := convertRuleDTO(rule)
+	if err := or.Patch(nr); err != nil {
+		misc.Logger.Error("failed to validate rule after patch", zap.String("rule_id", rule.ID), zap.Error(err))
 		return err
 	}
-
-	if nr.Variable != nil && len(nr.Variable) > 0 {
-		m := make(resource.Variable)
-		if rs.Variable != nil && len(rs.Variable) > 0 {
-			m = rs.Variable
-		}
-		for k, v := range nr.Variable {
-			m[k] = v
-		}
-		rs.Variable = m
-	}
-
-	if nr.Weight != nil && len(nr.Weight) > 0 {
-		m := make(resource.Weight)
-		if rs.Weight != nil && len(nr.Weight) > 0 {
-			m = rs.Weight
-		}
-		for k, v := range nr.Weight {
-			d, exist := m[k]
-			if !exist {
-				m[k] = v
-			} else {
-				for i, j := range v {
-					d[i] = j
-				}
-			}
-		}
-		rs.Weight = m
-	}
-
-	if nr.Responses != nil && len(nr.Responses) > 0 {
-		rs.Responses = nr.Responses
-	}
-
-	if err = ValidateRule(rs); err != nil {
-		misc.Logger.Error("failed to validate rule", zap.String("rule_id", rs.ID), zap.Error(err))
+	if err := srv.rule.UpdateRule(ctx, or); err != nil {
+		misc.Logger.Error("failed to update rule record", zap.String("rule_id", rule.ID), zap.Error(err))
 		return err
 	}
-
-	re, err = convertAsEntity(rs)
-	if err != nil {
-		misc.Logger.Error("failed to convert as rule entity", zap.String("rule_id", rs.ID), zap.Error(err))
-		return err
-	}
-	err = srv.repo.UpdateRule(context.TODO(), re)
-	if err != nil {
-		misc.Logger.Error("failed to patch rule entity", zap.String("rule_id", rs.ID), zap.Error(err))
-	}
-	return err
+	misc.Logger.Info("patch the rule record with id", zap.String("rule_id", rule.ID))
+	return nil
 }
 
-func (srv rule) Export() ([]*resource.Rule, error) {
-	res, err := srv.repo.Export(context.TODO())
+func (srv *mockApplication) Export(ctx context.Context) ([]*types.RuleDTO, error) {
+	res, err := srv.rule.Export(ctx)
 	if err != nil {
 		misc.Logger.Error("failed to export rules", zap.Error(err))
 		return nil, err
 	}
-	rules := make([]*resource.Rule, len(res))
+	rules := make([]*types.RuleDTO, len(res))
 	for index, re := range res {
-		r, err := convertAsResource(re)
-		if err != nil {
+		if err := re.Validate(); err != nil {
 			misc.Logger.Error("failed to convert as resource", zap.String("rule_id", re.ID), zap.Error(err))
 			return nil, err
 		}
+		r := convertRuleEntity(re)
 		rules[index] = r
 	}
 	return rules, nil
 }
 
-func (srv rule) Import(rules ...*resource.Rule) error {
-	if len(rules) == 0 {
-		misc.Logger.Error("disallowed to import empty rule")
-		return errors.New("nothing to import")
-	}
-	res := make([]*entity.Rule, len(rules))
+func (srv *mockApplication) Import(rules ...*types.RuleDTO) error {
+	res := make([]*domain.Rule, len(rules))
 	for index, rule := range rules {
-		if err := ValidateRule(rule); err != nil {
-			misc.Logger.Error("failed to validate rule", zap.String("rule_id", rule.ID), zap.Error(err))
+		ru := convertRuleDTO(rule)
+		if err := ru.Validate(); err != nil {
+			misc.Logger.Error("failed to validate rule content", zap.String("rule_id", rule.ID), zap.Error(err))
 			return err
 		}
 
-		re, err := convertAsEntity(rule)
-		if err != nil {
-			misc.Logger.Error("failed to convert as entity", zap.String("rule_id", rule.ID), zap.Error(err))
-			return err
-		}
-
-		res[index] = re
+		res[index] = ru
 	}
 
-	if err := srv.repo.Import(context.TODO(), res...); err != nil {
+	if err := srv.rule.Import(context.TODO(), res...); err != nil {
 		misc.Logger.Error("failed to import rules", zap.Error(err))
 		return err
 	}
