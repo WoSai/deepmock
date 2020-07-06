@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jacexh/requests"
-	"github.com/wosai/deepmock/types/resource"
+	"github.com/wosai/deepmock/types"
 )
 
 type (
@@ -25,12 +25,12 @@ type (
 
 	RuleResponse struct {
 		Response
-		Data *resource.Rule `json:"data,omitempty"`
+		Data *types.RuleDo `json:"data,omitempty"`
 	}
 
 	RulesResponse struct {
 		Response
-		Data []*resource.Rule `json:"data,omitempty"`
+		Data []*types.RuleDo `json:"data,omitempty"`
 	}
 )
 
@@ -60,7 +60,7 @@ func NewDeepMockClient(url string) *DeepMockClient {
 	}
 }
 
-func (c *DeepMockClient) CreateMockRule(rule *resource.Rule) (*resource.Rule, error) {
+func (c *DeepMockClient) CreateMockRule(rule *types.RuleDo) (*types.RuleDo, error) {
 	res := new(RuleResponse)
 	_, _, err := c.client.Post(c.url+entrypointRule, requests.Params{Json: rule}, requests.UnmarshalJSONResponse(res))
 	if err != nil {
@@ -84,7 +84,7 @@ func (c *DeepMockClient) DeleteMockRule(rid string) error {
 	return nil
 }
 
-func (c *DeepMockClient) GetMockRule(rid string) (*resource.Rule, error) {
+func (c *DeepMockClient) GetMockRule(rid string) (*types.RuleDo, error) {
 	res := new(RuleResponse)
 	_, _, err := c.client.Get(c.url+entrypointRule+"/"+rid, requests.Params{}, requests.UnmarshalJSONResponse(res))
 	if err != nil {
@@ -96,7 +96,7 @@ func (c *DeepMockClient) GetMockRule(rid string) (*resource.Rule, error) {
 	return res.Data, nil
 }
 
-func (c *DeepMockClient) PutMockRule(rule *resource.Rule) (*resource.Rule, error) {
+func (c *DeepMockClient) PutMockRule(rule *types.RuleDo) (*types.RuleDo, error) {
 	res := new(RuleResponse)
 	_, _, err := c.client.Put(c.url+entrypointRule, requests.Params{Json: rule}, requests.UnmarshalJSONResponse(res))
 	if err != nil {
@@ -108,7 +108,7 @@ func (c *DeepMockClient) PutMockRule(rule *resource.Rule) (*resource.Rule, error
 	return res.Data, nil
 }
 
-func (c *DeepMockClient) PatchMockRule(rule *resource.Rule) (*resource.Rule, error) {
+func (c *DeepMockClient) PatchMockRule(rule *types.RuleDo) (*types.RuleDo, error) {
 	res := new(RuleResponse)
 	_, _, err := c.client.Patch(c.url+entrypointRule, requests.Params{Json: rule}, requests.UnmarshalJSONResponse(res))
 	if err != nil {
@@ -120,7 +120,7 @@ func (c *DeepMockClient) PatchMockRule(rule *resource.Rule) (*resource.Rule, err
 	return res.Data, nil
 }
 
-func (c *DeepMockClient) ExportRules() ([]*resource.Rule, error) {
+func (c *DeepMockClient) ExportRules() ([]*types.RuleDo, error) {
 	res := new(RulesResponse)
 	_, _, err := c.client.Get(c.url+entrypointRules, requests.Params{}, requests.UnmarshalJSONResponse(res))
 	if err != nil {
@@ -132,7 +132,7 @@ func (c *DeepMockClient) ExportRules() ([]*resource.Rule, error) {
 	return res.Data, nil
 }
 
-func (c *DeepMockClient) ImportRules(rules ...*resource.Rule) error {
+func (c *DeepMockClient) ImportRules(rules ...*types.RuleDo) error {
 	res := new(RulesResponse)
 	_, _, err := c.client.Post(c.url+entrypointRules, requests.Params{Json: rules}, requests.UnmarshalJSONResponse(res))
 	if err != nil {
