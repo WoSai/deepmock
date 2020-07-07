@@ -30,10 +30,12 @@ type (
 		Method      []byte
 		Path        *regexp.Regexp
 		Variable    map[string]interface{}
-		Weight      map[string]*WeightDice
+		Weight      WeightPicker
 		Regulations []*RegulationExecutor
 		Version     int
 	}
+
+	WeightPicker map[string]*WeightDice
 
 	WeightDice struct {
 		total        int
@@ -104,6 +106,14 @@ func NewWeightDice(factor map[string]uint) *WeightDice {
 		}
 	}
 	return wd
+}
+
+func (wp WeightPicker) DiceAll() map[string]string {
+	ret := make(map[string]string)
+	for k, v := range wp {
+		ret[k] = v.Dice()
+	}
+	return ret
 }
 
 func (wd *WeightDice) Dice() string {
@@ -247,7 +257,7 @@ func (fe *FilterExecutor) Filter(request *fasthttp.Request) bool {
 	return true
 }
 
-func (te *TemplateExecutor) Render(ctx *fasthttp.RequestCtx) error {
+func (te *TemplateExecutor) Render(ctx *fasthttp.RequestCtx, v map[string]interface{}, weight map[string]string) error {
 	te.header.CopyTo(&ctx.Response.Header)
 	if !te.IsGolangTemplate {
 		ctx.Response.SetBody(te.body)
@@ -255,9 +265,22 @@ func (te *TemplateExecutor) Render(ctx *fasthttp.RequestCtx) error {
 	}
 
 	// 开始渲染模板
-	// todo: 提取RenderContext
 	var rc RenderContext
+	h := extractHeaderAsParams(&ctx.Request)
+	q := extractQueryAsParams(&ctx.Request)
+	f, j := extractBodyAsParams(&ctx.Request)
+
+	rc.Variable = v
+	rc.Weight = weight
+	rc.Header = h
+	rc.Query = q
+	rc.Form = f
+	rc.Json = j
 	return te.template.Execute(ctx.Response.BodyWriter(), rc)
+}
+
+func (re *RegulationExecutor) Render(ctx *fasthttp.RequestCtx, v map[string]interface{}, w map[string]string) error {
+	return re.Template.Render(ctx, v, w)
 }
 
 func NewExecutor() (*Executor, error) {

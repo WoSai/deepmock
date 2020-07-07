@@ -248,5 +248,5 @@ func (srv *mockApplication) MockAPI(ctx *fasthttp.RequestCtx) error {
 	if !founded {
 		return ErrRuleNotFound
 	}
-	return exec.FindRegulationExecutor(&ctx.Request).Template.Render(ctx)
+	return exec.FindRegulationExecutor(&ctx.Request).Render(ctx, exec.Variable, exec.Weight.DiceAll())
 }

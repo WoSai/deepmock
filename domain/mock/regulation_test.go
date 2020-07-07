@@ -15,10 +15,10 @@ func TestResponseRegulation_Wrap(t *testing.T) {
 		},
 		Response: &resource.ResponseTemplate{Body: "hello pingpong", Header: resource.HeaderTemplate{"Content-Type": "text/plaintext"}},
 	}
-	d1, _ := json.Marshal(res)
+	d1, _ := domain.json.Marshal(res)
 
 	rr, err := newResponseRegulation(res)
 	assert.Nil(t, err)
-	d2, _ := json.Marshal(rr.wrap())
+	d2, _ := domain.json.Marshal(rr.wrap())
 	assert.Equal(t, string(d1), string(d2))
 }
