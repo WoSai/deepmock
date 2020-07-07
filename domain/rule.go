@@ -1,8 +1,14 @@
 package domain
 
 import (
+	"encoding/base64"
 	"errors"
+	"html/template"
+	"net/http"
+	"regexp"
+	"strings"
 
+	"github.com/valyala/fasthttp"
 	"github.com/wosai/deepmock/misc"
 )
 
@@ -12,7 +18,7 @@ type (
 		Path        string
 		Method      string
 		Variable    map[string]interface{}
-		Weight      map[string]map[string]uint
+		Weight      map[string]WeightFactor
 		Regulations []*Regulation
 		Version     int
 	}
@@ -24,9 +30,9 @@ type (
 	}
 
 	Filter struct {
-		Query  map[string]string
-		Header map[string]string
-		Body   map[string]string
+		Query  QueryFilterParams
+		Header HeaderFilterParams
+		Body   BodyFilterParams
 	}
 
 	Template struct {
@@ -36,6 +42,11 @@ type (
 		Body           string
 		B64EncodedBody string
 	}
+
+	WeightFactor       map[string]uint
+	QueryFilterParams  map[string]string
+	HeaderFilterParams map[string]string
+	BodyFilterParams   map[string]string
 )
 
 func (f *Filter) Validate() error {
@@ -69,11 +80,49 @@ func (r *Regulation) Validate() error {
 	if r.Template == nil {
 		return errors.New("missing response template")
 	}
+	if r.Template.StatusCode == 0 {
+		r.Template.StatusCode = http.StatusOK
+	}
 	return nil
+}
+
+func (r *Regulation) To() (*RegulationExecutor, error) {
+	var err error
+
+	exec := &RegulationExecutor{
+		IsDefault: r.IsDefault,
+		Filter:    new(FilterExecutor),
+		Template:  new(TemplateExecutor),
+	}
+	if r.Filter != nil {
+		exec.Filter.Query, err = r.Filter.Query.To()
+		if err != nil {
+			return nil, err
+		}
+
+		exec.Filter.Header, err = r.Filter.Header.To()
+		if err != nil {
+			return nil, err
+		}
+
+		exec.Filter.Body, err = r.Filter.Body.To()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	exec.Template, err = r.Template.To()
+	if err != nil {
+		return nil, err
+	}
+	return exec, nil
 }
 
 // Validate 校验Rule的有效性
 func (rule *Rule) Validate() error {
+	rule.Method = strings.ToUpper(rule.Method)
+	rule.SupplyID()
+
 	if rule.ID != "" && misc.GenID([]byte(rule.Path), []byte(rule.Method)) != rule.ID {
 		return errors.New("invalid rule id")
 	}
@@ -163,4 +212,180 @@ func (rule *Rule) Put(nr *Rule) error {
 	rule.Weight = nr.Weight
 	rule.Regulations = nr.Regulations
 	return rule.Validate()
+}
+
+func (rule *Rule) To() (*Executor, error) {
+	if err := rule.Validate(); err != nil {
+		return nil, err
+	}
+	var err error
+	exec := &Executor{
+		ID:          rule.ID,
+		Method:      []byte(rule.Method),
+		Variable:    rule.Variable,
+		Regulations: nil,
+		Version:     rule.Version,
+	}
+	exec.Path, err = regexp.Compile(rule.Path)
+	if err != nil {
+		return nil, err
+	}
+	exec.Weight = make(WeightPicker, len(rule.Weight))
+	for k, factor := range rule.Weight {
+		exec.Weight[k] = factor.To()
+	}
+
+	exec.Regulations = make([]*RegulationExecutor, len(rule.Regulations))
+	for index, regulation := range rule.Regulations {
+		re, err := regulation.To()
+		if err != nil {
+			return nil, err
+		}
+		exec.Regulations[index] = re
+	}
+	return nil, nil
+}
+
+func (wf WeightFactor) To() *WeightDice {
+	wd := &WeightDice{
+		total:        0,
+		distribution: []string{},
+		factor:       wf,
+	}
+
+	for k, v := range wf {
+		for i := 0; i < int(v); i++ {
+			wd.distribution = append(wd.distribution, k)
+			wd.total++
+		}
+	}
+	return wd
+}
+
+func (qfp QueryFilterParams) To() (*QueryFilterExecutor, error) {
+	if qfp == nil {
+		return &QueryFilterExecutor{mode: FilterModeAlwaysTrue}, nil
+	}
+
+	mode := qfp[ModeField]
+	qfe := &QueryFilterExecutor{
+		params:   make(map[string][]byte),
+		regulars: make(map[string]*regexp.Regexp),
+		mode:     mode,
+	}
+	if qfe.mode == "" {
+		qfe.mode = FilterModeAlwaysTrue
+	}
+
+	for k, v := range qfp {
+		if k == ModeField {
+			continue
+		}
+		qfe.params[k] = []byte(v)
+		if mode == FilterModeRegular {
+			if reg, err := regexp.Compile(v); err == nil {
+				qfe.regulars[k] = reg
+			} else {
+				return nil, err
+			}
+		}
+	}
+	return qfe, nil
+}
+
+func (hfp HeaderFilterParams) To() (*HeaderFilterExecutor, error) {
+	if hfp == nil {
+		return &HeaderFilterExecutor{mode: FilterModeAlwaysTrue}, nil
+	}
+
+	mode := hfp[ModeField]
+	hfe := &HeaderFilterExecutor{
+		params:   make(map[string][]byte),
+		regulars: make(map[string]*regexp.Regexp),
+		mode:     mode,
+	}
+	if hfe.mode == "" {
+		hfe.mode = FilterModeAlwaysTrue
+	}
+
+	for k, v := range hfp {
+		if k == ModeField {
+			continue
+		}
+		hfe.params[k] = []byte(v)
+		if mode == FilterModeRegular {
+			if reg, err := regexp.Compile(v); err == nil {
+				hfe.regulars[k] = reg
+			} else {
+				return nil, err
+			}
+		}
+	}
+	return hfe, nil
+}
+
+func (bfp BodyFilterParams) To() (*BodyFilterExecutor, error) {
+	if bfp == nil {
+		return &BodyFilterExecutor{mode: FilterModeAlwaysTrue}, nil
+	}
+
+	mode := bfp[ModeField]
+	bfe := &BodyFilterExecutor{mode: mode}
+	if bfe.mode == "" {
+		bfe.mode = FilterModeAlwaysTrue
+	}
+
+	for k, v := range bfp {
+		if k == ModeField {
+			continue
+		}
+
+		switch mode {
+		case FilterModeKeyword:
+			bfe.keyword = []byte(v)
+
+		case FilterModeRegular:
+			reg, err := regexp.Compile(v)
+			if err != nil {
+				return nil, err
+			}
+			bfe.regular = reg
+		}
+	}
+	return bfe, nil
+}
+
+func (tmp *Template) To() (*TemplateExecutor, error) {
+	te := &TemplateExecutor{
+		IsGolangTemplate: tmp.IsTemplate,
+		IsBinData:        false,
+		template:         nil,
+	}
+
+	if tmp.B64EncodedBody != "" {
+		te.IsBinData = true
+		body, err := base64.StdEncoding.DecodeString(tmp.B64EncodedBody)
+		if err != nil {
+			return nil, err
+		}
+		te.body = body
+	} else {
+		te.body = []byte(tmp.Body)
+	}
+
+	header := new(fasthttp.ResponseHeader)
+	header.SetStatusCode(tmp.StatusCode)
+	for k, v := range tmp.Header {
+		header.Set(k, v)
+	}
+	te.header = header
+
+	if te.IsGolangTemplate {
+		tmpl, err := template.New(misc.GenRandomString(8)).Funcs(defaultTemplateFuncs).Parse(string(te.body))
+		if err != nil {
+			return nil, err
+		}
+		te.template = tmpl
+	}
+	return te, nil
 }

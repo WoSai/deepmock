@@ -82,7 +82,6 @@ type (
 	}
 
 	BodyFilterExecutor struct {
-		params  map[string][]byte
 		mode    FilterMode
 		regular *regexp.Regexp
 		keyword []byte
@@ -100,22 +99,6 @@ type (
 		regulars map[string]*regexp.Regexp
 	}
 )
-
-func NewWeightDice(factor map[string]uint) *WeightDice {
-	wd := &WeightDice{
-		total:        0,
-		distribution: []string{},
-		factor:       factor,
-	}
-
-	for k, v := range factor {
-		for i := 0; i < int(v); i++ {
-			wd.distribution = append(wd.distribution, k)
-			wd.total++
-		}
-	}
-	return wd
-}
 
 func (wp WeightPicker) DiceAll() map[string]string {
 	ret := make(map[string]string)
@@ -169,7 +152,7 @@ func (hfe *HeaderFilterExecutor) Filter(header *fasthttp.RequestHeader) bool {
 		return hfe.filterByExactKeyValue(header)
 
 	case FilterModeKeyword:
-		return hfe.filterByExactKeyValue(header)
+		return hfe.filterByKeyword(header)
 
 	case FilterModeRegular:
 		return hfe.filterByRegular(header)
@@ -219,7 +202,7 @@ func (qfe *QueryFilterExecutor) Filter(args *fasthttp.Args) bool {
 		return qfe.filterByExactKeyValue(args)
 
 	case FilterModeKeyword:
-		return qfe.filterByExactKeyValue(args)
+		return qfe.filterByKeyword(args)
 
 	case FilterModeRegular:
 		return qfe.filterByRegular(args)
@@ -292,6 +275,7 @@ func (re *RegulationExecutor) Render(ctx *fasthttp.RequestCtx, v map[string]inte
 	return re.Template.Render(ctx, v, w)
 }
 
+// todo:
 func NewExecutor() (*Executor, error) {
 	return nil, nil
 }

@@ -42,7 +42,7 @@ func extractBodyAsParams(req *fasthttp.Request) (map[string]string, map[string]i
 		return p, nil
 
 	case bytes.HasPrefix(ct, multipartContentType):
-		p := make(map[string]interface{})
+		p := make(map[string]string)
 		form, err := req.MultipartForm()
 		if err != nil {
 			return nil, nil

@@ -58,8 +58,14 @@ func convertRuleDTO(rule *types.RuleDTO) *domain.Rule {
 		Path:     rule.Path,
 		Method:   rule.Method,
 		Variable: rule.Variable,
-		Weight:   rule.Weight,
 	}
+	if rule.Weight != nil {
+		r.Weight = make(map[string]domain.WeightFactor)
+		for k, v := range rule.Weight {
+			r.Weight[k] = v
+		}
+	}
+
 	r.Regulations = make([]*domain.Regulation, len(rule.Regulations))
 
 	for index, regulation := range rule.Regulations {
@@ -97,8 +103,14 @@ func convertRuleEntity(rule *domain.Rule) *types.RuleDTO {
 		Path:     rule.Path,
 		Method:   rule.Method,
 		Variable: rule.Variable,
-		Weight:   rule.Weight,
 	}
+	if rule.Weight != nil {
+		r.Weight = make(types.WeightDTO)
+		for k, v := range rule.Weight {
+			r.Weight[k] = v
+		}
+	}
+
 	r.Regulations = make([]*types.RegulationDTO, len(rule.Regulations))
 	for index, regulation := range rule.Regulations {
 		r.Regulations[index] = convertRegulationVO(regulation)
