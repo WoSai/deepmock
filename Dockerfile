@@ -2,6 +2,7 @@ FROM golang:1.14-buster as builder
 WORKDIR /go/src/github.com/wosai/deepmock
 COPY . /go/src/github.com/wosai/deepmock
 ENV GO111MODULE on
+ENV GOPROXY https://goproxy.cn,direct
 RUN set -e \
     && apt update -y \
     && apt install -y git \
