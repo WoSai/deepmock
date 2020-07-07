@@ -9,7 +9,7 @@ on:
     - release/*
     - hotfix/*
     tags:
-    - *
+    - v*
 
 jobs:
   build:
