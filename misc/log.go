@@ -1,4 +1,4 @@
-package deepmock
+package misc
 
 import (
 	"os"

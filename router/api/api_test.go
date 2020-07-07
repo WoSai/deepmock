@@ -1,4 +1,4 @@
-package deepmock
+package api
 
 import (
 	"testing"

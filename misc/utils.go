@@ -1,6 +1,7 @@
-package deepmock
+package misc
 
 import (
+	"bytes"
 	"encoding/hex"
 	"hash"
 	"math/rand"
@@ -45,17 +46,17 @@ func (fp *hashPool) put(h hash.Hash) {
 	fp.pool.Put(h)
 }
 
-func genID(path, method []byte) string {
+func GenID(path, method []byte) string {
 	h := defaultHashPoll.get()
 	defer defaultHashPoll.put(h)
 
-	h.Write(method)
+	h.Write(bytes.ToUpper(method))
 	h.Write(path)
 	h.Write(salt)
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-func genRandomString(n int) string {
+func GenRandomString(n int) string {
 	b := make([]byte, n)
 	for i, cache, remain := n-1, rand.Int63(), letterIdxMax; i >= 0; {
 		if remain == 0 {

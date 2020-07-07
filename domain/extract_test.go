@@ -1,4 +1,4 @@
-package deepmock
+package domain
 
 import (
 	"mime/multipart"
@@ -17,7 +17,7 @@ func TestExtractFromHeader(t *testing.T) {
 	req.Header.SetBytesV("X-Env-Flag", []byte("base"))
 
 	p := extractHeaderAsParams(req)
-	assert.EqualValues(t, p, params{"Version": "123", "X-Env-Flag": "base"})
+	assert.EqualValues(t, p, map[string]string{"Version": "123", "X-Env-Flag": "base"})
 }
 
 func TestExtractFromQueryString(t *testing.T) {
@@ -27,7 +27,7 @@ func TestExtractFromQueryString(t *testing.T) {
 	req.URI().SetQueryString("name=foobar&message=欢迎")
 
 	p := extractQueryAsParams(req)
-	assert.EqualValues(t, p, params{"name": "foobar", "message": "欢迎"})
+	assert.EqualValues(t, p, map[string]string{"name": "foobar", "message": "欢迎"})
 }
 
 func TestExtractFromUrlencodedForm(t *testing.T) {
@@ -42,7 +42,7 @@ func TestExtractFromUrlencodedForm(t *testing.T) {
 	req.SetBodyString(data.Encode())
 
 	f, _ := extractBodyAsParams(req)
-	assert.EqualValues(t, f, params{"name": "foobar", "message": "中国"})
+	assert.EqualValues(t, f, map[string]string{"name": "foobar", "message": "中国"})
 
 	args := fasthttp.AcquireArgs()
 	defer fasthttp.ReleaseArgs(args)
@@ -51,7 +51,7 @@ func TestExtractFromUrlencodedForm(t *testing.T) {
 	req.SetBody(args.QueryString())
 
 	f, _ = extractBodyAsParams(req)
-	assert.EqualValues(t, f, params{"name": "foobar", "message": "中国"})
+	assert.EqualValues(t, f, map[string]string{"name": "foobar", "message": "中国"})
 }
 
 func TestExtractFromMultipartForm(t *testing.T) {
@@ -66,7 +66,7 @@ func TestExtractFromMultipartForm(t *testing.T) {
 	assert.Nil(t, writer.Close())
 
 	f, _ := extractBodyAsParams(req)
-	assert.EqualValues(t, params{"name": "foobar", "message": "中国"}, f)
+	assert.EqualValues(t, map[string]string{"name": "foobar", "message": "中国"}, f)
 }
 
 func TestExtractFromJson(t *testing.T) {

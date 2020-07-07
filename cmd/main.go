@@ -1,10 +1,19 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/jacexh/multiconfig"
-	"github.com/qastub/deepmock"
 	"github.com/valyala/fasthttp"
-	"github.com/vincentLiuxiang/lu"
+	"github.com/wosai/deepmock/application"
+	"github.com/wosai/deepmock/infrastructure"
+	"github.com/wosai/deepmock/misc"
+	"github.com/wosai/deepmock/option"
+	"github.com/wosai/deepmock/router"
 	"go.uber.org/zap"
 )
 
@@ -14,37 +23,45 @@ var (
 
 func main() {
 	loader := multiconfig.NewWithPathAndEnvPrefix("", "DEEPMOCK")
-	opt := new(deepmock.Option)
+	opt := new(option.Option)
 	loader.MustLoad(opt)
 
 	// 连接数据库
-	deepmock.BuildRuleStorage(opt.DB)
+	db := infrastructure.BuildDBConnection(opt.DB)
+	mem := infrastructure.NewExecutorRepository(1000)
+	job := infrastructure.NewJob(2 * time.Second)
 
-	app := lu.New()
-	app.Get("/api/v1/rule", deepmock.HandleGetRule)
-	app.Post("/api/v1/rule", deepmock.HandleCreateRule)
-	app.Put("/api/v1/rule", deepmock.HandleUpdateRule)
-	app.Patch("/api/v1/rule", deepmock.HandlePatchRule)
-	app.Delete("/api/v1/rule", deepmock.HandleDeleteRule)
+	// 初始化service
+	application.BuildMockApplication(
+		infrastructure.NewRuleRepository(db),
+		mem,
+		job,
+	)
 
-	app.Get("/api/v1/rules", deepmock.HandleExportRules)
-	app.Post("/api/v1/rules", deepmock.HandleImportRules)
-
-	app.Use("/", deepmock.HandleMockedAPI)
-
+	// 初始化http handler
+	app := router.BuildRouter()
 	server := &fasthttp.Server{
 		Name:        "DeepMock Service",
 		Handler:     app.Handler,
 		Concurrency: 1024 * 1024,
 	}
+	misc.Logger.Info("deepmock is running on port "+opt.Server.Port, zap.String("version", version))
 
-	deepmock.Logger.Info("deepmock will listen on port "+opt.Server.Port, zap.String("version", version))
+	errChan := make(chan error, 1)
+	go func() {
+		if opt.Server.KeyFile != "" && opt.Server.CertFile != "" {
+			errChan <- server.ListenAndServeTLS(opt.Server.Port, opt.Server.CertFile, opt.Server.KeyFile)
+		} else {
+			errChan <- server.ListenAndServe(opt.Server.Port)
+		}
 
-	if opt.Server.KeyFile != "" && opt.Server.CertFile != "" {
-		deepmock.Logger.Fatal("deepmock is down", zap.Error(
-			server.ListenAndServeTLS(opt.Server.Port, opt.Server.CertFile, opt.Server.KeyFile),
-		))
-	} else {
-		deepmock.Logger.Fatal("deepmock is down", zap.Error(server.ListenAndServe(opt.Server.Port)))
-	}
+	}()
+
+	go func() {
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+		errChan <- fmt.Errorf("caught signal: %s", (<-sigs).String())
+	}()
+
+	misc.Logger.Panic("deepmock is shutdown", zap.Error(<-errChan))
 }
