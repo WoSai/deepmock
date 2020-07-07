@@ -24,23 +24,23 @@ type (
 	}
 
 	Regulation struct {
-		IsDefault bool
-		Filter    *Filter
-		Template  *Template
+		IsDefault bool      `json:"is_default,omitempty"`
+		Filter    *Filter   `json:"filter,omitempty"`
+		Template  *Template `json:"response,omitempty"`
 	}
 
 	Filter struct {
-		Query  QueryFilterParams
-		Header HeaderFilterParams
-		Body   BodyFilterParams
+		Query  QueryFilterParams  `json:"query,omitempty"`
+		Header HeaderFilterParams `json:"header,omitempty"`
+		Body   BodyFilterParams   `json:"body,omitempty"`
 	}
 
 	Template struct {
-		IsTemplate     bool
-		Header         map[string]string
-		StatusCode     int
-		Body           string
-		B64EncodedBody string
+		IsTemplate     bool              `json:"is_template,omitempty"`
+		Header         map[string]string `json:"header,omitempty"`
+		StatusCode     int               `json:"status_code,omitempty"`
+		Body           string            `json:"body,omitempty"`
+		B64EncodedBody string            `json:"b64encoded_body,omitempty"`
 	}
 
 	WeightFactor       map[string]uint

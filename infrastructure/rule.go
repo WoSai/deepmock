@@ -52,6 +52,7 @@ func convertRuleEntity(rule *domain.Rule) (*types.RuleDO, error) {
 	return do, nil
 }
 
+// todo: 现在通过在entity上加tag实现转换，domain层不应该感知infra的数据结构，不合理，之后要优化
 func convertRuleDO(rule *types.RuleDO) (*domain.Rule, error) {
 	entity := &domain.Rule{
 		ID:      rule.ID,
