@@ -1,6 +1,15 @@
 name: master
 
-on: [push, pull_request, release]
+on:
+  pull_request:
+    branches:
+    - master
+  push:
+    branchs:
+    - release/*
+    - hotfix/*
+    tags:
+    - *
 
 jobs:
   build:
@@ -24,6 +33,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_ORG_USERNAME }}
           password: ${{ secrets.DOCKERHUB_ORG_ACCESS_TOKEN }}
-          repository: wosai/deepmock
+          repository: $DOCKER_IMAGE
           tag_with_ref: true
           tag_with_sha: true

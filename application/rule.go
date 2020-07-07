@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/valyala/fasthttp"
 	"github.com/wosai/deepmock/domain"
 	"github.com/wosai/deepmock/misc"
 	"github.com/wosai/deepmock/types"
@@ -36,8 +37,8 @@ func BuildRuleService(rr domain.RuleRepository, er domain.ExecutorRepository, jo
 		job.WithRuleRepository(rr)
 		job.WithExecutorRepository(er)
 		t := time.NewTicker(job.Period())
-		for {
-			<-t.C
+		for range t.C {
+			misc.Logger.Info("job awakened")
 			if err := job.Do(); err != nil {
 				misc.Logger.Error("occur error on job", zap.Error(err))
 				t.Stop()
@@ -220,7 +221,7 @@ func (srv *mockApplication) Export(ctx context.Context) ([]*types.RuleDTO, error
 	return rules, nil
 }
 
-func (srv *mockApplication) Import(rules ...*types.RuleDTO) error {
+func (srv *mockApplication) Import(ctx context.Context, rules ...*types.RuleDTO) error {
 	res := make([]*domain.Rule, len(rules))
 	for index, rule := range rules {
 		ru := convertRuleDTO(rule)
@@ -232,9 +233,13 @@ func (srv *mockApplication) Import(rules ...*types.RuleDTO) error {
 		res[index] = ru
 	}
 
-	if err := srv.rule.Import(context.TODO(), res...); err != nil {
+	if err := srv.rule.Import(ctx, res...); err != nil {
 		misc.Logger.Error("failed to import rules", zap.Error(err))
 		return err
 	}
+	return nil
+}
+
+func (srv *mockApplication) MockAPI(ctx *fasthttp.RequestCtx) error {
 	return nil
 }
