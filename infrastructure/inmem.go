@@ -35,8 +35,8 @@ func NewExecutorRepository(size int) *ExecutorRepository {
 	}
 }
 
-func (er *ExecutorRepository) cacheID(path, method []byte) []byte {
-	return bytes.Join([][]byte{path, method}, delimiter)
+func (er *ExecutorRepository) cacheID(path, method []byte) string {
+	return string(bytes.Join([][]byte{path, method}, delimiter))
 }
 
 func (er *ExecutorRepository) FindExecutor(_ context.Context, path, method []byte) (*domain.Executor, bool) {
@@ -98,7 +98,6 @@ func (er *ExecutorRepository) ImportAll(_ context.Context, executors ...*domain.
 
 	// toDelete中如果还存在数据，即表示需要删除
 	if len(toDelete) > 0 {
-
 		for k, _ := range toDelete {
 			misc.Logger.Info("deleted expired rules", zap.String("rule_id", k))
 			delete(er.executors, k)

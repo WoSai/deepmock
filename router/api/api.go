@@ -153,6 +153,10 @@ func HandleImportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
 	renderSuccessfulResponse(&ctx.Response, nil)
 }
 
+func HandleAPIVersion(ctx *fasthttp.RequestCtx, _ func(error)) {
+	renderSuccessfulResponse(&ctx.Response, "1.0")
+}
+
 func bindBody(ctx *fasthttp.RequestCtx, v interface{}) error {
 	if err := json.Unmarshal(ctx.Request.Body(), v); err != nil {
 		misc.Logger.Error("failed to parse request body", zap.ByteString("path", ctx.Request.URI().Path()), zap.ByteString("method", ctx.Request.Header.Method()), zap.Error(err))
