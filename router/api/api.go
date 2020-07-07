@@ -34,57 +34,15 @@ func parsePathVar(path, uri []byte) string {
 
 // HandleMockedAPI 处理所有mock api
 func HandleMockedAPI(ctx *fasthttp.RequestCtx, _ func(error)) {
-	//re, founded, _ := defaultRuleManager.findExecutor(ctx.Request.URI().Path(), ctx.Request.Header.Method())
-	//if !founded {
-	//	res := new(types.CommonResource)
-	//	res.Code = 400
-	//	res.ErrorMessage = "no rule match your request"
-	//	data, _ := json.Marshal(res)
-	//	ctx.Response.Header.SetContentType("application/json")
-	//	ctx.Response.SetBody(data)
-	//	return
-	//}
-	//
-	//regulation := re.visitBy(&ctx.Request)
-	//
-	//// 没有任何模板匹配到
-	//if regulation == nil {
-	//	res := new(types.CommonResource)
-	//	res.Code = 400
-	//	res.ErrorMessage = "missing matched response regulation"
-	//	data, _ := json.Marshal(res)
-	//	ctx.Response.Header.SetContentType("application/json")
-	//	ctx.Response.SetBody(data)
-	//	return
-	//}
-	//render(re, regulation.responseTemplate, ctx)
-	application.MockApplication.MockAPI(ctx)
+	err := application.MockApplication.MockAPI(ctx)
+	if err != nil {
+		if errors.Is(err, application.ErrRuleNotFound) {
+			misc.Logger.Error("no rule match your request")
+		}
+		renderFailedAPIResponse(&ctx.Response, err)
+		return
+	}
 }
-
-//func render(re *ruleExecutor, rt *responseTemplate, ctx *fasthttp.RequestCtx) {
-//	rt.header.CopyTo(&ctx.Response.Header)
-//	if rt.isTemplate {
-//		c := re.variable
-//		w := re.weightPicker.dice()
-//		h := extractHeaderAsParams(&ctx.Request)
-//		q := extractQueryAsParams(&ctx.Request)
-//		f, j := extractBodyAsParams(&ctx.Request)
-//
-//		rc := renderContext{Variable: c, Weight: w, Header: h, Query: q, Form: f, Json: j}
-//		if err := rt.renderTemplate(rc, ctx.Response.BodyWriter()); err != nil {
-//			Logger.Error("failed to render response template", zap.Error(err))
-//			res := new(types.CommonResource)
-//			res.Code = fasthttp.StatusBadRequest
-//			res.ErrorMessage = err.Error()
-//			data, _ := json.Marshal(res)
-//			ctx.Response.SetBody(data)
-//			return
-//		}
-//		return
-//	}
-//
-//	ctx.Response.SetBody(rt.body)
-//}
 
 // HandleCreateRule 创建规则接口
 func HandleCreateRule(ctx *fasthttp.RequestCtx, _ func(error)) {

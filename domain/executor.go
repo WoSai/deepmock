@@ -2,6 +2,7 @@ package domain
 
 import (
 	"bytes"
+	"html/template"
 	"math/rand"
 	"regexp"
 
@@ -43,6 +44,24 @@ type (
 	RegulationExecutor struct {
 		IsDefault bool
 		Filter    *FilterExecutor
+		Template  *TemplateExecutor
+	}
+
+	TemplateExecutor struct {
+		IsGolangTemplate bool
+		IsBinData        bool
+		template         *template.Template
+		header           *fasthttp.ResponseHeader
+		body             []byte
+	}
+
+	RenderContext struct {
+		Variable map[string]interface{}
+		Weight   map[string]string
+		Header   map[string]string
+		Query    map[string]string
+		Form     map[string]string
+		Json     map[string]interface{}
 	}
 
 	FilterExecutor struct {
@@ -228,6 +247,19 @@ func (fe *FilterExecutor) Filter(request *fasthttp.Request) bool {
 	return true
 }
 
+func (te *TemplateExecutor) Render(ctx *fasthttp.RequestCtx) error {
+	te.header.CopyTo(&ctx.Response.Header)
+	if !te.IsGolangTemplate {
+		ctx.Response.SetBody(te.body)
+		return nil
+	}
+
+	// 开始渲染模板
+	// todo: 提取RenderContext
+	var rc RenderContext
+	return te.template.Execute(ctx.Response.BodyWriter(), rc)
+}
+
 func NewExecutor() (*Executor, error) {
 	return nil, nil
 }
@@ -237,4 +269,18 @@ func (exe *Executor) Match(path, method []byte) bool {
 		return false
 	}
 	return exe.Path.Match(path)
+}
+
+func (exe *Executor) FindRegulationExecutor(request *fasthttp.Request) *RegulationExecutor {
+	var reg *RegulationExecutor
+
+	for _, regulation := range exe.Regulations {
+		if regulation.IsDefault {
+			reg = regulation
+		}
+		if regulation.Filter.Filter(request) {
+			return regulation
+		}
+	}
+	return reg
 }

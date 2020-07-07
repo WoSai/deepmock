@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 
 var (
 	MockApplication *mockApplication
+
+	ErrRuleNotFound = errors.New("rule not founded")
 )
 
 type (
@@ -241,5 +244,9 @@ func (srv *mockApplication) Import(ctx context.Context, rules ...*types.RuleDTO)
 }
 
 func (srv *mockApplication) MockAPI(ctx *fasthttp.RequestCtx) error {
-	return nil
+	exec, founded := srv.executor.FindExecutor(context.TODO(), ctx.Request.URI().Path(), ctx.Request.Header.Method())
+	if !founded {
+		return ErrRuleNotFound
+	}
+	return exec.FindRegulationExecutor(&ctx.Request).Template.Render(ctx)
 }
