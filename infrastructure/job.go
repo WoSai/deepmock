@@ -2,6 +2,7 @@ package infrastructure
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/wosai/deepmock/domain"
@@ -39,7 +40,7 @@ func (job *Job) Do() error {
 	for index, rule := range rules {
 		executor, err := rule.To()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to convert Rule to Executor: %s - %w", rule.ID, err)
 		}
 		executors[index] = executor
 	}

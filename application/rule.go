@@ -44,8 +44,6 @@ func BuildMockApplication(rr domain.RuleRepository, er domain.ExecutorRepository
 			misc.Logger.Info("job awakened")
 			if err := job.Do(); err != nil {
 				misc.Logger.Error("occur error on job", zap.Error(err))
-				t.Stop()
-				break
 			}
 		}
 	}()
