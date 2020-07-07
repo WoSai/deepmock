@@ -50,6 +50,9 @@ type (
 )
 
 func (f *Filter) Validate() error {
+	if f == nil {
+		return nil
+	}
 	if f.Header != nil {
 		if _, ok := f.Header[ModeField]; !ok {
 			return errors.New("missing mode in header filter")
