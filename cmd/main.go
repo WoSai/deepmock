@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jacexh/multiconfig"
 	"github.com/valyala/fasthttp"
@@ -27,12 +28,14 @@ func main() {
 
 	// 连接数据库
 	db := infrastructure.BuildDBConnection(opt.DB)
+	mem := infrastructure.NewExecutorRepository(1000)
+	job := infrastructure.NewJob(2 * time.Second)
 
 	// 初始化service
 	application.BuildMockApplication(
 		infrastructure.NewRuleRepository(db),
-		nil,
-		nil,
+		mem,
+		job,
 	)
 
 	// 初始化http handler

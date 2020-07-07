@@ -14,7 +14,7 @@ type (
 
 	ExecutorRepository interface {
 		FindExecutor(context.Context, []byte, []byte) (*Executor, bool)
-		ImportAll(context.Context, ...*Executor) error
+		ImportAll(context.Context, ...*Executor)
 		Purge(context.Context)
 	}
 )

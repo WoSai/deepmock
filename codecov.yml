@@ -1,3 +1,7 @@
 ignore:
-  - api.go
-  - logger.go
+- cmd/main.go
+- client/client.go
+- domain/repository.go
+- misc/log.go
+- option/
+- types/
