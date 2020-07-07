@@ -9,9 +9,7 @@ import (
 	"github.com/didi/gendry/scanner"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/wosai/deepmock/domain"
-	"github.com/wosai/deepmock/misc"
 	"github.com/wosai/deepmock/types"
-	"go.uber.org/zap"
 )
 
 var (
@@ -98,7 +96,6 @@ func (r *RuleRepository) CreateRule(ctx context.Context, rule *domain.Rule) erro
 	if err != nil {
 		return err
 	}
-	misc.Logger.Info(query, zap.Any("values", values))
 	_, err = r.db.ExecContext(ctx, query, values...)
 	return err
 }
@@ -125,7 +122,6 @@ func (r *RuleRepository) UpdateRule(ctx context.Context, rule *domain.Rule) erro
 	if err != nil {
 		return err
 	}
-	misc.Logger.Info(cond, zap.Any("values", values))
 	_, err = r.db.ExecContext(ctx, cond, values...)
 	return err
 }
@@ -140,7 +136,6 @@ func (r *RuleRepository) GetRuleByID(ctx context.Context, rid string) (*domain.R
 		},
 		[]string{"*"},
 	)
-	misc.Logger.Info(query, zap.Any("values", values))
 	rows, err := r.db.QueryContext(ctx, query, values...)
 	if err != nil {
 		return nil, err
@@ -164,7 +159,6 @@ func (r *RuleRepository) DeleteRule(ctx context.Context, rid string) error {
 	if err != nil {
 		return err
 	}
-	misc.Logger.Info(cond, zap.Any("values", values))
 	_, err = r.db.ExecContext(ctx, cond, values...)
 	return err
 }
@@ -175,7 +169,6 @@ func (r *RuleRepository) Export(ctx context.Context) ([]*domain.Rule, error) {
 		map[string]interface{}{"disabled": 0},
 		[]string{"*"},
 	)
-	misc.Logger.Info(query, zap.Any("values", values))
 	rows, err := r.db.QueryContext(ctx, query, values...)
 	if err != nil {
 		return nil, err
@@ -219,7 +212,6 @@ func (r *RuleRepository) Import(ctx context.Context, rules ...*domain.Rule) erro
 	cond, values, _ := builder.BuildDelete(r.table, map[string]interface{}{
 		"id in": ids,
 	})
-	misc.Logger.Info(cond, zap.Any("values", values))
 	_, err = tx.ExecContext(ctx, cond, values...)
 	if err != nil {
 		_ = tx.Rollback()
@@ -243,7 +235,6 @@ func (r *RuleRepository) Import(ctx context.Context, rules ...*domain.Rule) erro
 		_ = tx.Rollback()
 		return err
 	}
-	misc.Logger.Info(cond, zap.Any("values", values))
 	_, err = tx.ExecContext(ctx, cond, values...)
 	if err != nil {
 		_ = tx.Rollback()

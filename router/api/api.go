@@ -36,9 +36,6 @@ func parsePathVar(path, uri []byte) string {
 func HandleMockedAPI(ctx *fasthttp.RequestCtx, _ func(error)) {
 	err := application.MockApplication.MockAPI(ctx)
 	if err != nil {
-		if errors.Is(err, application.ErrRuleNotFound) {
-			misc.Logger.Error("no rule match your request")
-		}
 		renderFailedAPIResponse(&ctx.Response, err)
 		return
 	}

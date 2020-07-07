@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/valyala/fasthttp"
@@ -31,6 +32,7 @@ type (
 		rule     domain.RuleRepository
 		executor domain.ExecutorRepository
 		job      AsyncJob
+		counter  uint64
 	}
 )
 
@@ -41,7 +43,7 @@ func BuildMockApplication(rr domain.RuleRepository, er domain.ExecutorRepository
 		job.WithExecutorRepository(er)
 		t := time.NewTicker(job.Period())
 		for range t.C {
-			misc.Logger.Info("job awakened")
+			misc.Logger.Info("async job complete")
 			if err := job.Do(); err != nil {
 				misc.Logger.Error("occur error on job", zap.Error(err))
 			}
@@ -254,9 +256,13 @@ func (srv *mockApplication) Import(ctx context.Context, rules ...*types.RuleDTO)
 }
 
 func (srv *mockApplication) MockAPI(ctx *fasthttp.RequestCtx) error {
+	index := atomic.AddUint64(&srv.counter, 1)
+	misc.Logger.Info("received request", zap.Uint64("index", index), zap.ByteString("path", ctx.Request.URI().Path()), zap.ByteString("method", ctx.Request.Header.Method()))
 	exec, founded := srv.executor.FindExecutor(context.TODO(), ctx.Request.URI().Path(), ctx.Request.Header.Method())
 	if !founded {
+		misc.Logger.Warn("no matched rule founded", zap.Uint64("index", index))
 		return ErrRuleNotFound
 	}
+	misc.Logger.Info("found matched rule", zap.Uint64("index", index), zap.String("rule_id", exec.ID))
 	return exec.FindRegulationExecutor(&ctx.Request).Render(ctx, exec.Variable, exec.Weight.DiceAll())
 }

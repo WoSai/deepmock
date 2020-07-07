@@ -7,6 +7,8 @@ import (
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/wosai/deepmock/domain"
+	"github.com/wosai/deepmock/misc"
+	"go.uber.org/zap"
 )
 
 type (
@@ -28,7 +30,7 @@ func NewExecutorRepository(size int) *ExecutorRepository {
 	}
 
 	return &ExecutorRepository{
-		executors: make(map[string]*domain.Executor),
+		executors: map[string]*domain.Executor{},
 		cache:     cache,
 	}
 }
@@ -87,9 +89,7 @@ func (er *ExecutorRepository) ImportAll(_ context.Context, executors ...*domain.
 
 	for _, executor := range executors {
 		current, exists := er.executors[executor.ID]
-		if exists {
-			delete(toDelete, executor.ID)
-		}
+		delete(toDelete, executor.ID)
 		if exists && current.Version == executor.Version { // 记录未变更
 			continue
 		}
@@ -97,7 +97,11 @@ func (er *ExecutorRepository) ImportAll(_ context.Context, executors ...*domain.
 	}
 
 	// toDelete中如果还存在数据，即表示需要删除
-	for k, _ := range toDelete {
-		delete(er.executors, k)
+	if len(toDelete) > 0 {
+
+		for k, _ := range toDelete {
+			misc.Logger.Info("deleted expired rules", zap.String("rule_id", k))
+			delete(er.executors, k)
+		}
 	}
 }

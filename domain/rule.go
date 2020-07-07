@@ -246,7 +246,7 @@ func (rule *Rule) To() (*Executor, error) {
 		}
 		exec.Regulations[index] = re
 	}
-	return nil, nil
+	return exec, nil
 }
 
 func (wf WeightFactor) To() *WeightDice {
