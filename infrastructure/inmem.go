@@ -86,8 +86,10 @@ func (er *ExecutorRepository) ImportAll(_ context.Context, executors ...*domain.
 	}
 
 	for _, executor := range executors {
-		delete(toDelete, executor.ID)
 		current, exists := er.executors[executor.ID]
+		if exists {
+			delete(toDelete, executor.ID)
+		}
 		if exists && current.Version == executor.Version { // 记录未变更
 			continue
 		}

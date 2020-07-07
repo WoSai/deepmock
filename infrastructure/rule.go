@@ -170,7 +170,11 @@ func (r *RuleRepository) DeleteRule(ctx context.Context, rid string) error {
 }
 
 func (r *RuleRepository) Export(ctx context.Context) ([]*domain.Rule, error) {
-	query, values, _ := builder.BuildSelect(r.table, nil, []string{"*"})
+	query, values, _ := builder.BuildSelect(
+		r.table,
+		map[string]interface{}{"disabled": 0},
+		[]string{"*"},
+	)
 	misc.Logger.Info(query, zap.Any("values", values))
 	rows, err := r.db.QueryContext(ctx, query, values...)
 	if err != nil {
