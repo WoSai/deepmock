@@ -13,7 +13,8 @@ type (
 	}
 
 	ExecutorRepository interface {
-		GetExecutor(context.Context, *Executor) error
-		Import(context.Context, ...*Executor) error
+		FindExecutor(context.Context, []byte, []byte) (*Executor, bool)
+		ImportAll(context.Context, ...*Executor) error
+		Purge(context.Context)
 	}
 )

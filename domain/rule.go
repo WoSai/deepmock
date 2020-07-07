@@ -40,19 +40,19 @@ type (
 
 func (f *Filter) Validate() error {
 	if f.Header != nil {
-		if _, ok := f.Header["mode"]; !ok {
+		if _, ok := f.Header[ModeField]; !ok {
 			return errors.New("missing mode in header filter")
 		}
 	}
 
 	if f.Query != nil {
-		if _, ok := f.Query["mode"]; !ok {
+		if _, ok := f.Query[ModeField]; !ok {
 			return errors.New("missing mode in query filter")
 		}
 	}
 
 	if f.Body != nil {
-		if _, ok := f.Body["mode"]; !ok {
+		if _, ok := f.Body[ModeField]; !ok {
 			return errors.New("missing mode in body filter")
 		}
 	}
@@ -78,7 +78,7 @@ func (rule *Rule) Validate() error {
 		return errors.New("invalid rule id")
 	}
 	if len(rule.Path) == 0 {
-		return errors.New("bad rule path")
+		return errors.New("bad rule Path")
 	}
 	if len(rule.Method) == 0 {
 		return errors.New("bad rule method")
@@ -116,7 +116,7 @@ func (rule *Rule) SupplyID() (string, bool) {
 func (rule *Rule) Patch(nr *Rule) error {
 	rule.Version++
 
-	// variable
+	// Variable
 	switch {
 	case rule.Variable == nil && nr.Variable != nil:
 		rule.Variable = nr.Variable
