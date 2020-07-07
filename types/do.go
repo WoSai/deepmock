@@ -3,7 +3,7 @@ package types
 import "time"
 
 type (
-	RuleDo struct {
+	RuleDO struct {
 		ID        string    `ddb:"id"`
 		Path      string    `ddb:"path"`
 		Method    string    `ddb:"method"`

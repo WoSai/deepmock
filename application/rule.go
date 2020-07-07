@@ -31,7 +31,7 @@ type (
 	}
 )
 
-func BuildRuleService(rr domain.RuleRepository, er domain.ExecutorRepository, job AsyncJob) *mockApplication {
+func BuildMockApplication(rr domain.RuleRepository, er domain.ExecutorRepository, job AsyncJob) *mockApplication {
 	MockApplication = &mockApplication{rule: rr, executor: er, job: job}
 	go func() {
 		job.WithRuleRepository(rr)
