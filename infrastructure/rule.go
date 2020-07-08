@@ -17,6 +17,7 @@ var (
 )
 
 type (
+	// RuleRepository RuleRepository的MySQL存储实现
 	RuleRepository struct {
 		db    *sql.DB
 		table string
@@ -76,10 +77,12 @@ func convertRuleDO(rule *types.RuleDO) (*domain.Rule, error) {
 	return entity, nil
 }
 
+// NewRuleRepository 工厂函数
 func NewRuleRepository(db *sql.DB) *RuleRepository {
 	return &RuleRepository{db: db, table: "rule"}
 }
 
+// CreateRule 插入新纪录
 func (r *RuleRepository) CreateRule(ctx context.Context, rule *domain.Rule) error {
 	do, err := convertRuleEntity(rule)
 	if err != nil {
@@ -100,6 +103,7 @@ func (r *RuleRepository) CreateRule(ctx context.Context, rule *domain.Rule) erro
 	return err
 }
 
+// UpdateRule 更新记录
 func (r *RuleRepository) UpdateRule(ctx context.Context, rule *domain.Rule) error {
 	do, err := convertRuleEntity(rule)
 	if err != nil {
@@ -126,6 +130,7 @@ func (r *RuleRepository) UpdateRule(ctx context.Context, rule *domain.Rule) erro
 	return err
 }
 
+// GetRuleByID 获取记录
 func (r *RuleRepository) GetRuleByID(ctx context.Context, rid string) (*domain.Rule, error) {
 	query, values, _ := builder.BuildSelect(
 		r.table,
@@ -154,6 +159,7 @@ func (r *RuleRepository) GetRuleByID(ctx context.Context, rid string) (*domain.R
 	return convertRuleDO(rules[0])
 }
 
+// DeleteRule 删除记录
 func (r *RuleRepository) DeleteRule(ctx context.Context, rid string) error {
 	cond, values, err := builder.BuildDelete(r.table, map[string]interface{}{"id": rid, "disabled": 0})
 	if err != nil {
@@ -163,6 +169,7 @@ func (r *RuleRepository) DeleteRule(ctx context.Context, rid string) error {
 	return err
 }
 
+// Export 导出记录
 func (r *RuleRepository) Export(ctx context.Context) ([]*domain.Rule, error) {
 	query, values, _ := builder.BuildSelect(
 		r.table,
@@ -191,6 +198,7 @@ func (r *RuleRepository) Export(ctx context.Context) ([]*domain.Rule, error) {
 	return entities, nil
 }
 
+// Import 导入记录
 func (r *RuleRepository) Import(ctx context.Context, rules ...*domain.Rule) error {
 	dataObjects := make([]*types.RuleDO, len(rules))
 	ids := make([]string, len(rules))

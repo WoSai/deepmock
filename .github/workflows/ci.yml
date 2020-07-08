@@ -8,6 +8,7 @@ on:
     branchs:
     - release/*
     - hotfix/*
+    - master
     tags:
     - v*
 

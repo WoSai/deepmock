@@ -12,6 +12,7 @@ import (
 )
 
 type (
+	// ExecutorRepository ExecutorRepository的内存存储库实现
 	ExecutorRepository struct {
 		executors map[string]*domain.Executor
 		cache     *lru.ARCCache
@@ -23,6 +24,7 @@ var (
 	delimiter = []byte("-")
 )
 
+// NewExecutorRepository 工厂函数
 func NewExecutorRepository(size int) *ExecutorRepository {
 	cache, err := lru.NewARC(size)
 	if err != nil {
@@ -39,6 +41,7 @@ func (er *ExecutorRepository) cacheID(path, method []byte) string {
 	return string(bytes.Join([][]byte{path, method}, delimiter))
 }
 
+// FindExecutor 查询执行器
 func (er *ExecutorRepository) FindExecutor(_ context.Context, path, method []byte) (*domain.Executor, bool) {
 	cid := er.cacheID(path, method)
 	val, cached := er.cache.Get(cid)
@@ -68,6 +71,7 @@ func (er *ExecutorRepository) FindExecutor(_ context.Context, path, method []byt
 	return nil, false
 }
 
+// Purge 清空存储库
 func (er *ExecutorRepository) Purge(_ context.Context) {
 	er.mu.Lock()
 	defer er.mu.Unlock()
@@ -78,6 +82,7 @@ func (er *ExecutorRepository) Purge(_ context.Context) {
 	er.cache.Purge()
 }
 
+// ImportAll 导入所有执行器
 func (er *ExecutorRepository) ImportAll(_ context.Context, executors ...*domain.Executor) {
 	er.mu.Lock()
 	defer er.mu.Unlock()

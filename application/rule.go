@@ -15,12 +15,15 @@ import (
 )
 
 var (
+	// MockApplication 全局的mockApplication对象
 	MockApplication *mockApplication
 
-	ErrRuleNotFound = errors.New("rule not founded")
+	// ErrRuleNotFound 定义的无匹配规则时的错误
+	ErrRuleNotFound = errors.New("rule not found")
 )
 
 type (
+	// AsyncJob 异步的摆渡任务接口定义
 	AsyncJob interface {
 		Period() time.Duration
 		Do() error
@@ -36,6 +39,7 @@ type (
 	}
 )
 
+// BuildMockApplication mockApplication的工厂函数
 func BuildMockApplication(rr domain.RuleRepository, er domain.ExecutorRepository, job AsyncJob) *mockApplication {
 	MockApplication = &mockApplication{rule: rr, executor: er, job: job}
 	go func() {
@@ -140,6 +144,7 @@ func convertRegulationVO(reg *domain.Regulation) *types.RegulationDTO {
 	return r
 }
 
+// CreateRule 创建规则的user case
 func (srv *mockApplication) CreateRule(ctx context.Context, rule *types.RuleDTO) (string, error) {
 	ru := convertRuleDTO(rule)
 	rid, _ := ru.SupplyID()
@@ -156,6 +161,7 @@ func (srv *mockApplication) CreateRule(ctx context.Context, rule *types.RuleDTO)
 	return rid, nil
 }
 
+// GetRule 获取规则的user case
 func (srv *mockApplication) GetRule(ctx context.Context, rid string) (*types.RuleDTO, error) {
 	re, err := srv.rule.GetRuleByID(ctx, rid)
 	if err != nil {
@@ -170,6 +176,7 @@ func (srv *mockApplication) GetRule(ctx context.Context, rid string) (*types.Rul
 	return rule, nil
 }
 
+// DeleteRule 删除规则的user case
 func (srv *mockApplication) DeleteRule(ctx context.Context, rid string) error {
 	if err := srv.rule.DeleteRule(ctx, rid); err != nil {
 		misc.Logger.Error("failed to delete rule entity", zap.String("rule_id", rid), zap.Error(err))
@@ -178,6 +185,7 @@ func (srv *mockApplication) DeleteRule(ctx context.Context, rid string) error {
 	return nil
 }
 
+// PutRule 全量更新规则的user case
 func (srv *mockApplication) PutRule(ctx context.Context, rule *types.RuleDTO) error {
 	or, err := srv.rule.GetRuleByID(ctx, rule.ID)
 	if err != nil {
@@ -198,6 +206,7 @@ func (srv *mockApplication) PutRule(ctx context.Context, rule *types.RuleDTO) er
 	return nil
 }
 
+// PatchRule 部分更新规则的user case
 func (srv *mockApplication) PatchRule(ctx context.Context, rule *types.RuleDTO) error {
 	or, err := srv.rule.GetRuleByID(ctx, rule.ID)
 	if err != nil {
@@ -218,6 +227,7 @@ func (srv *mockApplication) PatchRule(ctx context.Context, rule *types.RuleDTO) 
 	return nil
 }
 
+// Export 导出的user case
 func (srv *mockApplication) Export(ctx context.Context) ([]*types.RuleDTO, error) {
 	res, err := srv.rule.Export(ctx)
 	if err != nil {
@@ -236,6 +246,7 @@ func (srv *mockApplication) Export(ctx context.Context) ([]*types.RuleDTO, error
 	return rules, nil
 }
 
+// Import 导入规则的user case
 func (srv *mockApplication) Import(ctx context.Context, rules ...*types.RuleDTO) error {
 	res := make([]*domain.Rule, len(rules))
 	for index, rule := range rules {
@@ -255,6 +266,7 @@ func (srv *mockApplication) Import(ctx context.Context, rules ...*types.RuleDTO)
 	return nil
 }
 
+// MockAPI Mock接口的user case
 func (srv *mockApplication) MockAPI(ctx *fasthttp.RequestCtx) error {
 	index := atomic.AddUint64(&srv.counter, 1)
 	misc.Logger.Info("received request", zap.Uint64("index", index), zap.ByteString("path", ctx.Request.URI().Path()), zap.ByteString("method", ctx.Request.Header.Method()))
