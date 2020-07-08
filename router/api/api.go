@@ -153,6 +153,7 @@ func HandleImportRules(ctx *fasthttp.RequestCtx, _ func(error)) {
 	renderSuccessfulResponse(&ctx.Response, nil)
 }
 
+// HandleAPIVersion 健康检查用途
 func HandleAPIVersion(ctx *fasthttp.RequestCtx, _ func(error)) {
 	renderSuccessfulResponse(&ctx.Response, "1.0")
 }

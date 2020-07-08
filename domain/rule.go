@@ -13,6 +13,7 @@ import (
 )
 
 type (
+	// Rule 规则实体
 	Rule struct {
 		ID          string
 		Path        string
@@ -23,18 +24,21 @@ type (
 		Version     int
 	}
 
+	// Regulation 响应报文值对象
 	Regulation struct {
 		IsDefault bool      `json:"is_default,omitempty"`
 		Filter    *Filter   `json:"filter,omitempty"`
 		Template  *Template `json:"response,omitempty"`
 	}
 
+	// Filter 筛选规则值对象
 	Filter struct {
 		Query  QueryFilterParams  `json:"query,omitempty"`
 		Header HeaderFilterParams `json:"header,omitempty"`
 		Body   BodyFilterParams   `json:"body,omitempty"`
 	}
 
+	// Template 模板值对象
 	Template struct {
 		IsTemplate     bool              `json:"is_template,omitempty"`
 		Header         map[string]string `json:"header,omitempty"`
@@ -43,12 +47,17 @@ type (
 		B64EncodedBody string            `json:"b64encoded_body,omitempty"`
 	}
 
-	WeightFactor       map[string]uint
-	QueryFilterParams  map[string]string
+	// WeightFactor 权重因子值对象
+	WeightFactor map[string]uint
+	// QueryFilterParams query筛选参数值对象
+	QueryFilterParams map[string]string
+	// HeaderFilterParams 请求头筛选参数值对象
 	HeaderFilterParams map[string]string
-	BodyFilterParams   map[string]string
+	// BodyFilterParams body筛选参数值对象
+	BodyFilterParams map[string]string
 )
 
+// Validate 校验函数
 func (f *Filter) Validate() error {
 	if f == nil {
 		return nil
@@ -73,6 +82,7 @@ func (f *Filter) Validate() error {
 	return nil
 }
 
+// Validate 校验函数
 func (r *Regulation) Validate() error {
 	if !r.IsDefault && r.Filter == nil {
 		return errors.New("unreachable regulation")
@@ -89,6 +99,7 @@ func (r *Regulation) Validate() error {
 	return nil
 }
 
+// To 转换成响应规则执行器
 func (r *Regulation) To() (*RegulationExecutor, error) {
 	var err error
 
@@ -208,6 +219,7 @@ func (rule *Rule) Patch(nr *Rule) error {
 	return rule.Validate()
 }
 
+// Put 全量更新Rule实体
 func (rule *Rule) Put(nr *Rule) error {
 	rule.Version++
 
@@ -217,6 +229,7 @@ func (rule *Rule) Put(nr *Rule) error {
 	return rule.Validate()
 }
 
+// To 转换成Executor实体
 func (rule *Rule) To() (*Executor, error) {
 	if err := rule.Validate(); err != nil {
 		return nil, err
@@ -249,6 +262,7 @@ func (rule *Rule) To() (*Executor, error) {
 	return exec, nil
 }
 
+// To 转换成WeightDice
 func (wf WeightFactor) To() *WeightDice {
 	wd := &WeightDice{
 		total:        0,
@@ -265,6 +279,7 @@ func (wf WeightFactor) To() *WeightDice {
 	return wd
 }
 
+// To 转换成QueryFilterExecutor
 func (qfp QueryFilterParams) To() (*QueryFilterExecutor, error) {
 	if qfp == nil {
 		return &QueryFilterExecutor{mode: FilterModeAlwaysTrue}, nil
@@ -296,6 +311,7 @@ func (qfp QueryFilterParams) To() (*QueryFilterExecutor, error) {
 	return qfe, nil
 }
 
+// To 转换成HeaderFilterExecutor
 func (hfp HeaderFilterParams) To() (*HeaderFilterExecutor, error) {
 	if hfp == nil {
 		return &HeaderFilterExecutor{mode: FilterModeAlwaysTrue}, nil
@@ -327,6 +343,7 @@ func (hfp HeaderFilterParams) To() (*HeaderFilterExecutor, error) {
 	return hfe, nil
 }
 
+// To 转换成BodyFilterExecutor
 func (bfp BodyFilterParams) To() (*BodyFilterExecutor, error) {
 	if bfp == nil {
 		return &BodyFilterExecutor{mode: FilterModeAlwaysTrue}, nil
@@ -358,6 +375,7 @@ func (bfp BodyFilterParams) To() (*BodyFilterExecutor, error) {
 	return bfe, nil
 }
 
+// To 转换成TemplateExecutor
 func (tmp *Template) To() (*TemplateExecutor, error) {
 	te := &TemplateExecutor{
 		IsGolangTemplate: tmp.IsTemplate,

@@ -5,6 +5,7 @@ import (
 	"github.com/wosai/deepmock/router/api"
 )
 
+// BuildRouter router的工厂函数
 func BuildRouter() *lu.Lu {
 	app := lu.New()
 

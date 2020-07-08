@@ -46,6 +46,7 @@ func (fp *hashPool) put(h hash.Hash) {
 	fp.pool.Put(h)
 }
 
+// GenID 基于murmur3的哈希函数
 func GenID(path, method []byte) string {
 	h := defaultHashPoll.get()
 	defer defaultHashPoll.put(h)
@@ -56,6 +57,7 @@ func GenID(path, method []byte) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
+// GenRandomString 生产指定长度的随机字符串
 func GenRandomString(n int) string {
 	b := make([]byte, n)
 	for i, cache, remain := n-1, rand.Int63(), letterIdxMax; i >= 0; {

@@ -24,6 +24,7 @@ const (
 	// FilterModeRegular 正则表达式模式
 	FilterModeRegular FilterMode = "regular"
 
+	// ModeField 筛选模式的字段名称
 	ModeField = "mode"
 )
 
@@ -32,8 +33,10 @@ var (
 )
 
 type (
+	// FilterMode 筛选模式定义
 	FilterMode = string
 
+	// Executor 规则执行器
 	Executor struct {
 		ID          string
 		Method      []byte
@@ -44,20 +47,24 @@ type (
 		Version     int
 	}
 
+	// WeightPicker 权重随机值选择器
 	WeightPicker map[string]*WeightDice
 
+	// WeightDice 权重随机值对象
 	WeightDice struct {
 		total        int
 		distribution []string
 		factor       map[string]uint
 	}
 
+	// RegulationExecutor 报文规则执行器
 	RegulationExecutor struct {
 		IsDefault bool
 		Filter    *FilterExecutor
 		Template  *TemplateExecutor
 	}
 
+	// TemplateExecutor 响应报文模板执行器
 	TemplateExecutor struct {
 		IsGolangTemplate bool
 		IsBinData        bool
@@ -66,6 +73,7 @@ type (
 		body             []byte
 	}
 
+	// RenderContext 动态渲染的上下文
 	RenderContext struct {
 		Variable map[string]interface{}
 		Weight   map[string]string
@@ -75,24 +83,28 @@ type (
 		Json     map[string]interface{}
 	}
 
+	// FilterExecutor 筛选执行器
 	FilterExecutor struct {
 		Query  *QueryFilterExecutor
 		Header *HeaderFilterExecutor
 		Body   *BodyFilterExecutor
 	}
 
+	// BodyFilterExecutor Body报文筛选执行器
 	BodyFilterExecutor struct {
 		mode    FilterMode
 		regular *regexp.Regexp
 		keyword []byte
 	}
 
+	// HeaderFilterExecutor 请求头筛选执行器
 	HeaderFilterExecutor struct {
 		params   map[string][]byte
 		mode     FilterMode
 		regulars map[string]*regexp.Regexp
 	}
 
+	// QueryFilterExecutor Query参数筛选执行器
 	QueryFilterExecutor struct {
 		params   map[string][]byte
 		mode     FilterMode
@@ -100,6 +112,7 @@ type (
 	}
 )
 
+// DiceAll 返回所有权重因子的值
 func (wp WeightPicker) DiceAll() map[string]string {
 	ret := make(map[string]string)
 	for k, v := range wp {
@@ -108,6 +121,7 @@ func (wp WeightPicker) DiceAll() map[string]string {
 	return ret
 }
 
+// Dice 更具权重值随机返回某个值
 func (wd *WeightDice) Dice() string {
 	return wd.distribution[rand.Intn(wd.total)]
 }
@@ -139,6 +153,7 @@ func (hfe *HeaderFilterExecutor) filterByRegular(header *fasthttp.RequestHeader)
 	return true
 }
 
+// Filter 筛选函数
 func (hfe *HeaderFilterExecutor) Filter(header *fasthttp.RequestHeader) bool {
 	if hfe == nil {
 		return true
@@ -189,6 +204,7 @@ func (qfe *QueryFilterExecutor) filterByRegular(args *fasthttp.Args) bool {
 	return true
 }
 
+// Filter 筛选函数
 func (qfe *QueryFilterExecutor) Filter(args *fasthttp.Args) bool {
 	if qfe == nil {
 		return true
@@ -212,6 +228,7 @@ func (qfe *QueryFilterExecutor) Filter(args *fasthttp.Args) bool {
 	}
 }
 
+// Filter 筛选函数
 func (bfe *BodyFilterExecutor) Filter(body []byte) bool {
 	if bfe == nil {
 		return true
@@ -232,6 +249,7 @@ func (bfe *BodyFilterExecutor) Filter(body []byte) bool {
 	}
 }
 
+// Filter 筛选函数
 func (fe *FilterExecutor) Filter(request *fasthttp.Request) bool {
 	if fe == nil {
 		return true
@@ -249,6 +267,7 @@ func (fe *FilterExecutor) Filter(request *fasthttp.Request) bool {
 	return true
 }
 
+// Render 渲染函数
 func (te *TemplateExecutor) Render(ctx *fasthttp.RequestCtx, v map[string]interface{}, weight map[string]string) error {
 	te.header.CopyTo(&ctx.Response.Header)
 	if !te.IsGolangTemplate {
@@ -271,15 +290,12 @@ func (te *TemplateExecutor) Render(ctx *fasthttp.RequestCtx, v map[string]interf
 	return te.template.Execute(ctx.Response.BodyWriter(), rc)
 }
 
+// Render 渲染函数
 func (re *RegulationExecutor) Render(ctx *fasthttp.RequestCtx, v map[string]interface{}, w map[string]string) error {
 	return re.Template.Render(ctx, v, w)
 }
 
-// todo:
-func NewExecutor() (*Executor, error) {
-	return nil, nil
-}
-
+// Match 请求匹配函数
 func (exe *Executor) Match(path, method []byte) bool {
 	if bytes.Compare(method, exe.Method) != 0 {
 		return false
@@ -287,6 +303,7 @@ func (exe *Executor) Match(path, method []byte) bool {
 	return exe.Path.Match(path)
 }
 
+// FindRegulationExecutor 查找符合的报文规则执行器
 func (exe *Executor) FindRegulationExecutor(request *fasthttp.Request) *RegulationExecutor {
 	var reg *RegulationExecutor
 

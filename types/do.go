@@ -3,6 +3,7 @@ package types
 import "time"
 
 type (
+	// RuleDO Rule在mysql存储结构
 	RuleDO struct {
 		ID        string    `ddb:"id"`
 		Path      string    `ddb:"path"`

@@ -15,6 +15,7 @@ var (
 	db *sql.DB
 )
 
+// BuildDBConnection MySQL Connection初始化函数
 func BuildDBConnection(opt option.DatabaseOption) *sql.DB {
 	var err error
 
