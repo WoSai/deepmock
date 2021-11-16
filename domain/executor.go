@@ -66,11 +66,12 @@ type (
 
 	// TemplateExecutor 响应报文模板执行器
 	TemplateExecutor struct {
-		IsGolangTemplate bool
-		IsBinData        bool
-		template         *template.Template
-		header           *fasthttp.ResponseHeader
-		body             []byte
+		IsGolangTemplate   bool
+		IsLocationTemplate bool
+		IsBinData          bool
+		template           *template.Template
+		header             *fasthttp.ResponseHeader
+		body               []byte
 	}
 
 	// RenderContext 动态渲染的上下文
@@ -269,6 +270,12 @@ func (fe *FilterExecutor) Filter(request *fasthttp.Request) bool {
 
 // Render 渲染函数
 func (te *TemplateExecutor) Render(ctx *fasthttp.RequestCtx, v map[string]interface{}, weight map[string]string) error {
+	if te.IsLocationTemplate {
+		// 处理header template
+		if err := te.handleHeaderTemplate(ctx, v, weight); err != nil {
+			return err
+		}
+	}
 	te.header.CopyTo(&ctx.Response.Header)
 	if !te.IsGolangTemplate {
 		ctx.Response.SetBody(te.body)
@@ -288,6 +295,39 @@ func (te *TemplateExecutor) Render(ctx *fasthttp.RequestCtx, v map[string]interf
 	rc.Form = f
 	rc.Json = j
 	return te.template.Execute(ctx.Response.BodyWriter(), rc)
+}
+
+// handleHeaderTemplate 处理header中的template
+func (te *TemplateExecutor) handleHeaderTemplate(ctx *fasthttp.RequestCtx, v map[string]interface{}, weight map[string]string) error {
+
+	location := string(te.header.Peek("location"))
+
+	// parse params
+	var rc RenderContext
+	h := extractHeaderAsParams(&ctx.Request)
+	q := extractQueryAsParams(&ctx.Request)
+	f, j := extractBodyAsParams(&ctx.Request)
+
+	rc.Variable = v
+	rc.Weight = weight
+	rc.Header = h
+	rc.Query = q
+	rc.Form = f
+	rc.Json = j
+
+	var buf bytes.Buffer
+	tmpl, err := template.New("headerTemplate").Parse(location)
+	if err != nil {
+		return err
+	}
+	err = tmpl.Execute(&buf, rc)
+	if err != nil {
+		return err
+	}
+
+	// set-header
+	te.header.Set("location", buf.String())
+	return nil
 }
 
 // Render 渲染函数

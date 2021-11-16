@@ -40,11 +40,12 @@ type (
 
 	// Template 模板值对象
 	Template struct {
-		IsTemplate     bool              `json:"is_template,omitempty"`
-		Header         map[string]string `json:"header,omitempty"`
-		StatusCode     int               `json:"status_code,omitempty"`
-		Body           string            `json:"body,omitempty"`
-		B64EncodedBody string            `json:"b64encoded_body,omitempty"`
+		IsTemplate         bool              `json:"is_template,omitempty"`
+		IsLocationTemplate bool              `json:"is_location_template,omitempty"`
+		Header             map[string]string `json:"header,omitempty"`
+		StatusCode         int               `json:"status_code,omitempty"`
+		Body               string            `json:"body,omitempty"`
+		B64EncodedBody     string            `json:"b64encoded_body,omitempty"`
 	}
 
 	// WeightFactor 权重因子值对象
@@ -378,9 +379,10 @@ func (bfp BodyFilterParams) To() (*BodyFilterExecutor, error) {
 // To 转换成TemplateExecutor
 func (tmp *Template) To() (*TemplateExecutor, error) {
 	te := &TemplateExecutor{
-		IsGolangTemplate: tmp.IsTemplate,
-		IsBinData:        false,
-		template:         nil,
+		IsGolangTemplate:   tmp.IsTemplate,
+		IsLocationTemplate: tmp.IsLocationTemplate,
+		IsBinData:          false,
+		template:           nil,
 	}
 
 	if tmp.B64EncodedBody != "" {

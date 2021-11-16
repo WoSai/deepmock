@@ -3,12 +3,12 @@ package domain
 import (
 	"bytes"
 	"fmt"
-	"html/template"
-	"regexp"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
+	"html/template"
+	"net/url"
+	"regexp"
+	"testing"
 )
 
 func TestHeaderFilter_Filter(t *testing.T) {
@@ -273,4 +273,29 @@ func TestRuleExecutor_Minimal(t *testing.T) {
 
 	_, err := rule.To()
 	assert.NoError(t, err)
+}
+
+func TestHeaderTemplate(t *testing.T) {
+	var rc RenderContext
+	rc.Variable = map[string]interface{}{
+		"app_id": "app_id",
+		"code":   "123456",
+	}
+	rc.Weight = map[string]string{}
+	rc.Header = map[string]string{}
+	rc.Query = map[string]string{
+		"appid":        "appid",
+		"redirect_url": "https%3A%2F%2Fwww.baidu.com",
+		"state":        "true",
+	}
+	rc.Form = map[string]string{}
+	rc.Json = map[string]interface{}{}
+	var buf bytes.Buffer
+	tmpl, err := template.New("test").Parse("{{.Query.redirect_url}}?state={{.Query.state}}&app_id={{.Variable.app_id}}&code={{.Variable.code}}")
+	assert.Nil(t, err)
+	err = tmpl.Execute(&buf, rc)
+	assert.Nil(t, err)
+
+	decodeUrl, _ := url.QueryUnescape(buf.String())
+	assert.Equal(t, decodeUrl, "https://www.baidu.com?state=true&app_id=app_id&code=123456")
 }
