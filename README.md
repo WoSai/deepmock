@@ -49,11 +49,12 @@ curl -X POST http://127.0.0.1:16600/api/v1/rule \
     * `exact`: 精确筛选
     * `keyword`: 关键字筛选
     * `regular`: 正则表达式筛选
-- Response可以通过[Go Template](https://golang.org/pkg/text/template/)实现，因此可以支持以下特性
+- Response中的body和header均可以通过[Go Template](https://golang.org/pkg/text/template/)实现，因此可以支持以下特性
     * 可以使用逻辑控制，如: `if`，`range`
     * 可以使用内置函数
     * 可以自定义函数
 - 规则中的`Variable`、`Weight`以及请求中的`Header`、`Query`、`Form`、`Json`同样参与Response模板的渲染
+- Response.body中使用template渲染时，需设置`is_template: true`，Response.header中使用template渲染时，需设置`is_header_template: true`
 
 ### 接口列表：
 
@@ -398,6 +399,54 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
 |`plus`| `v`, `i` | `{{plus v i}}` | 将v的值增加i，实现简单的计算，支持string\int\float类型|
 |`rand_string`| `n` | `{{rand_string n}}`| 生成长度为n的随机字符串 |
  
+#### Response.Header使用Template渲染
+```json
+{
+    "path": "/redirect/baidu",
+    "method": "get",
+    "variable": {
+        "app_id": "app_id",
+        "code":   "123456"
+	},
+    "responses": [
+        {
+            "is_default": true,
+            "response": {
+                "is_template":false,
+                "is_header_template":true,
+                "header": {
+                    "Content-Type": "text/html",
+                    "User-Agent": "Wechat",
+                    "x-env-flag": "test-111",
+                    "rand-string": "{{rand_string 10}}",
+                    "timestamp-sec": "{{timestamp \"sec\"}}",
+                    "uuid": "{{uuid}}",
+                    "not-exist-func":"{{not_exist_func}}", // not exist func will not be rendered
+                    "location": "{{.Query.redirect_uri}}?state={{.Query.state}}&app_id={{.Variable.app_id}}&code={{.Variable.code}}"
+                },
+                "status_code": 302
+            }
+        }
+    ]
+}
+
+```
+```typescript
+curl -I --location --request GET 'http://localhost:16600/redirect/baidu?redirect_uri=https%3A%2F%2Fwww.baidu.com&appid=appid&state=true'
+
+HTTP/1.1 302 Found
+Server: DeepMock Service
+Date: Fri, 19 Nov 2021 02:27:18 GMT
+Content-Type: text/html
+Content-Length: 0
+Not-Exist-Func: {{not_exist_func}}
+Rand-String: L1cGikKZx3
+Timestamp-Sec: 1637288839
+Uuid: cb871cc9-84d0-4b00-a036-a575ba06889e
+X-Env-Flag: test-111
+User-Agent: Wechat
+Location: https://www.baidu.com?state=true&app_id=app_id&code=123456
+```
 
 ### Benchmark
 

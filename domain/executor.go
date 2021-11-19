@@ -66,12 +66,12 @@ type (
 
 	// TemplateExecutor 响应报文模板执行器
 	TemplateExecutor struct {
-		IsGolangTemplate   bool
-		IsLocationTemplate bool
-		IsBinData          bool
-		template           *template.Template
-		header             *fasthttp.ResponseHeader
-		body               []byte
+		IsGolangTemplate bool
+		IsHeaderTemplate bool
+		IsBinData        bool
+		template         *template.Template
+		header           *fasthttp.ResponseHeader
+		body             []byte
 	}
 
 	// RenderContext 动态渲染的上下文
@@ -270,7 +270,7 @@ func (fe *FilterExecutor) Filter(request *fasthttp.Request) bool {
 
 // Render 渲染函数
 func (te *TemplateExecutor) Render(ctx *fasthttp.RequestCtx, v map[string]interface{}, weight map[string]string) error {
-	if te.IsLocationTemplate {
+	if te.IsHeaderTemplate {
 		// 处理header template
 		if err := te.handleHeaderTemplate(ctx, v, weight); err != nil {
 			return err
@@ -299,15 +299,16 @@ func (te *TemplateExecutor) Render(ctx *fasthttp.RequestCtx, v map[string]interf
 
 // handleHeaderTemplate 处理header中的template
 func (te *TemplateExecutor) handleHeaderTemplate(ctx *fasthttp.RequestCtx, v map[string]interface{}, weight map[string]string) error {
-
-	location := string(te.header.Peek("location"))
+	reg := regexp.MustCompile("{{.+}}")
+	if reg == nil {
+		return errors.New("regexp error")
+	}
 
 	// parse params
 	var rc RenderContext
 	h := extractHeaderAsParams(&ctx.Request)
 	q := extractQueryAsParams(&ctx.Request)
 	f, j := extractBodyAsParams(&ctx.Request)
-
 	rc.Variable = v
 	rc.Weight = weight
 	rc.Header = h
@@ -315,18 +316,27 @@ func (te *TemplateExecutor) handleHeaderTemplate(ctx *fasthttp.RequestCtx, v map
 	rc.Form = f
 	rc.Json = j
 
-	var buf bytes.Buffer
-	tmpl, err := template.New("headerTemplate").Parse(location)
-	if err != nil {
-		return err
-	}
-	err = tmpl.Execute(&buf, rc)
-	if err != nil {
-		return err
-	}
+	// Traverse header and render
+	te.header.VisitAll(func(key, value []byte) {
+		strKey := string(key)
+		strValue := string(value)
+		if reg.MatchString(strValue) {
+			var buf bytes.Buffer
+			tmpl, err := template.New("headerTemplate").Funcs(defaultTemplateFuncs).Parse(strValue)
+			if err != nil {
+				misc.Logger.Error(err.Error())
+				return
+			}
+			err = tmpl.Execute(&buf, rc)
+			if err != nil {
+				misc.Logger.Error(err.Error())
+				return
+			}
+			// set key with rendered value
+			te.header.Set(strKey, buf.String())
+		}
+	})
 
-	// set-header
-	te.header.Set("location", buf.String())
 	return nil
 }
 

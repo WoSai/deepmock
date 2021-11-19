@@ -299,3 +299,51 @@ func TestHeaderTemplate(t *testing.T) {
 	decodeUrl, _ := url.QueryUnescape(buf.String())
 	assert.Equal(t, decodeUrl, "https://www.baidu.com?state=true&app_id=app_id&code=123456")
 }
+
+func TestModifyHeader(t *testing.T) {
+	// 测试遍历header并修改
+	header := &fasthttp.ResponseHeader{}
+	header.Set("fake", "1")
+	header.Set("rand-string", "{{rand_string 20}}")
+	header.Set("user-agent", "Wechat")
+	header.Set("uuid", "{{uuid}}")
+	header.Set("Not-Exist-Func", "{{not_exist_func}}")
+	header.Set("location", "{{.Query.redirect_uri}}?state={{.Query.state}}&app_id={{.Variable.app_id}}&auth_code={{.Variable.code}}")
+
+	var rc RenderContext
+	rc.Variable = map[string]interface{}{
+		"app_id": "app_id",
+		"code":   "123456",
+	}
+	rc.Query = map[string]string{
+		"appid":        "appid",
+		"redirect_uri": "https%3A%2F%2Fwww.baidu.com",
+		"state":        "true",
+	}
+
+	reg := regexp.MustCompile("{{.+}}")
+	assert.NotNil(t, reg)
+
+	header.VisitAll(func(key, value []byte) {
+		strKey := string(key)
+		strValue := string(value)
+		if reg.MatchString(strValue) {
+			var buf bytes.Buffer
+			tmpl, err := template.New("headerTemplate").Funcs(defaultTemplateFuncs).Parse(strValue)
+			if err != nil {
+				return
+			}
+			err = tmpl.Execute(&buf, rc)
+			if err != nil {
+				return
+			}
+			// set key with rendered value
+			header.Set(strKey, buf.String())
+		}
+	})
+
+	fmt.Println("After render, the header is:")
+	fmt.Println(string(header.Header()))
+	decodeUrl, _ := url.QueryUnescape(string(header.Peek("Location")))
+	assert.Equal(t, decodeUrl, "https://www.baidu.com?state=true&app_id=app_id&auth_code=123456")
+}
