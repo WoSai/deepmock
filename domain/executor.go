@@ -283,17 +283,8 @@ func (te *TemplateExecutor) Render(ctx *fasthttp.RequestCtx, v map[string]interf
 	}
 
 	// 开始渲染模板
-	var rc RenderContext
-	h := extractHeaderAsParams(&ctx.Request)
-	q := extractQueryAsParams(&ctx.Request)
-	f, j := extractBodyAsParams(&ctx.Request)
-
-	rc.Variable = v
-	rc.Weight = weight
-	rc.Header = h
-	rc.Query = q
-	rc.Form = f
-	rc.Json = j
+	rc := &RenderContext{}
+	rc.parseParams(ctx, v, weight)
 	return te.template.Execute(ctx.Response.BodyWriter(), rc)
 }
 
@@ -305,24 +296,14 @@ func (te *TemplateExecutor) handleHeaderTemplate(ctx *fasthttp.RequestCtx, v map
 	}
 
 	// parse params
-	var rc RenderContext
-	h := extractHeaderAsParams(&ctx.Request)
-	q := extractQueryAsParams(&ctx.Request)
-	f, j := extractBodyAsParams(&ctx.Request)
-	rc.Variable = v
-	rc.Weight = weight
-	rc.Header = h
-	rc.Query = q
-	rc.Form = f
-	rc.Json = j
+	rc := &RenderContext{}
+	rc.parseParams(ctx, v, weight)
 
 	// Traverse header and render
 	te.header.VisitAll(func(key, value []byte) {
-		strKey := string(key)
-		strValue := string(value)
-		if reg.MatchString(strValue) {
+		if reg.Match(value) {
 			var buf bytes.Buffer
-			tmpl, err := template.New("headerTemplate").Funcs(defaultTemplateFuncs).Parse(strValue)
+			tmpl, err := template.New("headerTemplate").Funcs(defaultTemplateFuncs).Parse(string(value))
 			if err != nil {
 				misc.Logger.Error(err.Error())
 				return
@@ -332,12 +313,24 @@ func (te *TemplateExecutor) handleHeaderTemplate(ctx *fasthttp.RequestCtx, v map
 				misc.Logger.Error(err.Error())
 				return
 			}
-			// set key with rendered value
-			te.header.Set(strKey, buf.String())
+			te.header.SetBytesKV(key, buf.Bytes())
 		}
 	})
 
 	return nil
+}
+
+// parseParams 解析Request中的参数，供template渲染使用
+func (rc *RenderContext) parseParams(ctx *fasthttp.RequestCtx, v map[string]interface{}, weight map[string]string) {
+	h := extractHeaderAsParams(&ctx.Request)
+	q := extractQueryAsParams(&ctx.Request)
+	f, j := extractBodyAsParams(&ctx.Request)
+	rc.Variable = v
+	rc.Weight = weight
+	rc.Header = h
+	rc.Query = q
+	rc.Form = f
+	rc.Json = j
 }
 
 // Render 渲染函数
