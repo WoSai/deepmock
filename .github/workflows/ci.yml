@@ -28,13 +28,6 @@ jobs:
       run: go test -race -coverprofile=coverage.txt -covermode=atomic -v ./...
     - name: Test Coverage Report
       run: bash <(curl -s https://codecov.io/bash)
-#    - uses: docker/build-push-action@v1
-#      with:
-#        username: ${{ secrets.DOCKERHUB_ORG_USERNAME }}
-#        password: ${{ secrets.DOCKERHUB_ORG_ACCESS_TOKEN }}
-#        repository: wosai/deepmock
-#        tag_with_ref: true
-#        tag_with_sha: true
     - name: Docker meta
       id: meta
       uses: docker/metadata-actions@v3
