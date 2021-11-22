@@ -49,4 +49,4 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         context: .
-        tags: ${{ step.meta.outputs.tags }}
+        tags: ${{ steps.meta.outputs.tags }}
