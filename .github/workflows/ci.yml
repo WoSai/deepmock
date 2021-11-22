@@ -28,10 +28,31 @@ jobs:
       run: go test -race -coverprofile=coverage.txt -covermode=atomic -v ./...
     - name: Test Coverage Report
       run: bash <(curl -s https://codecov.io/bash)
-    - uses: docker/build-push-action@v1
+#    - uses: docker/build-push-action@v1
+#      with:
+#        username: ${{ secrets.DOCKERHUB_ORG_USERNAME }}
+#        password: ${{ secrets.DOCKERHUB_ORG_ACCESS_TOKEN }}
+#        repository: wosai/deepmock
+#        tag_with_ref: true
+#        tag_with_sha: true
+    - name: Docker meta
+      id: meta
+      uses: docker/metadata-actions@v3
+      with:
+        images: |
+          wosai/deepmock
+        tags: |
+          type=ref, event=branch
+          type=ref, event=pr
+          type=sha
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+    - name: Login to DockerHub
       with:
         username: ${{ secrets.DOCKERHUB_ORG_USERNAME }}
         password: ${{ secrets.DOCKERHUB_ORG_ACCESS_TOKEN }}
-        repository: wosai/deepmock
-        tag_with_ref: true
-        tag_with_sha: true
+    - name: Build and push
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        tags: ${{ step.meta.outputs.tags }}
