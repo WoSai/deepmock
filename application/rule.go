@@ -89,12 +89,12 @@ func convertRegulationDTO(reg *types.RegulationDTO) *domain.Regulation {
 	}
 	if reg.Template != nil {
 		r.Template = &domain.Template{
-			IsTemplate:         reg.Template.IsTemplate,
-			IsLocationTemplate: reg.Template.IsLocationTemplate,
-			Header:             reg.Template.Header,
-			Body:               reg.Template.Body,
-			B64EncodedBody:     reg.Template.B64EncodeBody,
-			StatusCode:         reg.Template.StatusCode, // 默认不传，设置为200
+			IsTemplate:       reg.Template.IsTemplate,
+			IsHeaderTemplate: reg.Template.IsHeaderTemplate,
+			Header:           reg.Template.Header,
+			Body:             reg.Template.Body,
+			B64EncodedBody:   reg.Template.B64EncodeBody,
+			StatusCode:       reg.Template.StatusCode, // 默认不传，设置为200
 		}
 		if reg.Template.StatusCode == 0 {
 			r.Template.StatusCode = http.StatusOK

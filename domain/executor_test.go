@@ -275,27 +275,61 @@ func TestRuleExecutor_Minimal(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestHeaderTemplate(t *testing.T) {
-	var rc RenderContext
-	rc.Variable = map[string]interface{}{
+func TestHandleHeaderTemplate(t *testing.T) {
+	// 测试遍历header并修改的函数handleHeaderTemplate
+	ctx := &fasthttp.RequestCtx{
+		Request: fasthttp.Request{
+			Header: fasthttp.RequestHeader{},
+		},
+	}
+	ctx.Request.SetBody([]byte("{\"hello\":\"{{.Variable.name}}\", \"country\":\"{{.Query.country}}\",\"body\":\"{{.Form.nickname}}\"}"))
+	ctx.Request.Header.SetRequestURIBytes([]byte("http://localhost:16600/redirect/baidu?redirect_uri=https%3A%2F%2Fwww.baidu.com&appid=appid&state=true"))
+
+	// 模拟response header
+	te := &TemplateExecutor{}
+	te.header = &fasthttp.ResponseHeader{}
+	te.header.Set("fake", "1")
+	te.header.Set("rand-string", "{{rand_string 20}}")
+	te.header.Set("user-agent", "Wechat")
+	te.header.Set("uuid", "{{uuid}}")
+	te.header.Set("Not-Exist-Func", "{{not_exist_func}}")
+	te.header.Set("location", "{{.Query.redirect_uri}}?state={{.Query.state}}&app_id={{.Variable.app_id}}&auth_code={{.Variable.code}}")
+
+	v := map[string]interface{}{
 		"app_id": "app_id",
 		"code":   "123456",
 	}
-	rc.Weight = map[string]string{}
-	rc.Header = map[string]string{}
-	rc.Query = map[string]string{
-		"appid":        "appid",
-		"redirect_url": "https%3A%2F%2Fwww.baidu.com",
-		"state":        "true",
-	}
-	rc.Form = map[string]string{}
-	rc.Json = map[string]interface{}{}
-	var buf bytes.Buffer
-	tmpl, err := template.New("test").Parse("{{.Query.redirect_url}}?state={{.Query.state}}&app_id={{.Variable.app_id}}&code={{.Variable.code}}")
-	assert.Nil(t, err)
-	err = tmpl.Execute(&buf, rc)
+
+	err := te.handleHeaderTemplate(ctx, v, nil)
 	assert.Nil(t, err)
 
-	decodeUrl, _ := url.QueryUnescape(buf.String())
-	assert.Equal(t, decodeUrl, "https://www.baidu.com?state=true&app_id=app_id&code=123456")
+	fmt.Println("\n>>>>>>After render, the te.header is:")
+	fmt.Println(string(te.header.Header()))
+	decodeUrl, _ := url.QueryUnescape(string(te.header.Peek("Location")))
+	assert.Equal(t, decodeUrl, "https://www.baidu.com?state=true&app_id=app_id&auth_code=123456")
+	assert.Equal(t, string(te.header.Peek("not-exist-func")), "{{not_exist_func}}")
+}
+
+func TestParseParams(t *testing.T) {
+	ctx := &fasthttp.RequestCtx{
+		Request: fasthttp.Request{
+			Header: fasthttp.RequestHeader{},
+		},
+	}
+
+	ctx.Request.SetBody([]byte("{\"hello\":\"{{.Variable.name}}\", \"country\":\"{{.Query.country}}\",\"body\":\"{{.Form.nickname}}\"}"))
+	ctx.Request.Header.SetRequestURIBytes([]byte("http://localhost:16600/redirect/baidu?redirect_uri=https%3A%2F%2Fwww.baidu.com&appid=appid&state=true"))
+
+	v := map[string]interface{}{
+		"app_id": "app_id",
+		"code":   "123456",
+	}
+	rc := &RenderContext{}
+	rc.parseParams(ctx, v, nil)
+
+	assert.Equal(t, rc.Query["redirect_uri"], "https://www.baidu.com")
+	assert.Equal(t, rc.Query["appid"], "appid")
+	assert.Equal(t, rc.Query["state"], "true")
+	assert.Equal(t, rc.Variable["app_id"], "app_id")
+	assert.Equal(t, rc.Variable["code"], "123456")
 }
