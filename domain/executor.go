@@ -67,9 +67,10 @@ type (
 	// TemplateExecutor 响应报文模板执行器
 	TemplateExecutor struct {
 		IsGolangTemplate bool
-		IsHeaderTemplate bool
+		RenderHeader     bool
 		IsBinData        bool
 		template         *template.Template
+		headerTemplate   *template.Template
 		header           *fasthttp.ResponseHeader
 		body             []byte
 	}
@@ -270,53 +271,45 @@ func (fe *FilterExecutor) Filter(request *fasthttp.Request) bool {
 
 // Render 渲染函数
 func (te *TemplateExecutor) Render(ctx *fasthttp.RequestCtx, v map[string]interface{}, weight map[string]string) error {
-	if te.IsHeaderTemplate {
-		// 处理header template
-		if err := te.handleHeaderTemplate(ctx, v, weight); err != nil {
+	te.header.CopyTo(&ctx.Response.Header)
+	rc := &RenderContext{}
+	if te.RenderHeader {
+		// 渲染header template
+		if err := te.handleHeaderTemplate(rc, ctx, v, weight); err != nil {
 			return err
 		}
 	}
-	te.header.CopyTo(&ctx.Response.Header)
 	if !te.IsGolangTemplate {
 		ctx.Response.SetBody(te.body)
 		return nil
 	}
 
-	// 开始渲染模板
-	rc := &RenderContext{}
-	rc.parseParams(ctx, v, weight)
+	// 开始渲染body模板
+	if rc == nil {
+		rc.parseParams(ctx, v, weight)
+	}
 	return te.template.Execute(ctx.Response.BodyWriter(), rc)
 }
 
 // handleHeaderTemplate 处理header中的template
-func (te *TemplateExecutor) handleHeaderTemplate(ctx *fasthttp.RequestCtx, v map[string]interface{}, weight map[string]string) error {
-	reg := regexp.MustCompile("{{.+}}")
-	if reg == nil {
-		return errors.New("regexp error")
-	}
-
+func (te *TemplateExecutor) handleHeaderTemplate(rc *RenderContext, ctx *fasthttp.RequestCtx, v map[string]interface{}, weight map[string]string) error {
 	// parse params
-	rc := &RenderContext{}
 	rc.parseParams(ctx, v, weight)
-
-	// Traverse header and render
-	te.header.VisitAll(func(key, value []byte) {
-		if reg.Match(value) {
-			var buf bytes.Buffer
-			tmpl, err := template.New("headerTemplate").Funcs(defaultTemplateFuncs).Parse(string(value))
-			if err != nil {
-				misc.Logger.Error(err.Error())
-				return
-			}
-			err = tmpl.Execute(&buf, rc)
-			if err != nil {
-				misc.Logger.Error(err.Error())
-				return
-			}
-			te.header.SetBytesKV(key, buf.Bytes())
-		}
-	})
-
+	// render template
+	var buf bytes.Buffer
+	if err := te.headerTemplate.Execute(&buf, rc); err != nil {
+		misc.Logger.Error(err.Error())
+		return err
+	}
+	// merge to ctx.response.header
+	headerToBeSet := make(map[string]string)
+	if err := json.Unmarshal(buf.Bytes(), &headerToBeSet); err != nil {
+		misc.Logger.Error(err.Error())
+		return err
+	}
+	for k, v := range headerToBeSet {
+		ctx.Response.Header.Set(k, v)
+	}
 	return nil
 }
 
@@ -419,6 +412,11 @@ func dateDelta(date, layout string, year, month, day int) string {
 	return t.AddDate(year, month, day).Format(layout)
 }
 
+func HTMLUnescaped(x string) interface{} {
+	// do not encode HTML, like "&" --> "&amp;"
+	return template.HTML(x)
+}
+
 func init() {
 	// create build-in template functions
 	defaultTemplateFuncs = make(template.FuncMap)
@@ -428,4 +426,5 @@ func init() {
 	_ = RegisterTemplateFunc("plus", plus)
 	_ = RegisterTemplateFunc("rand_string", misc.GenRandomString)
 	_ = RegisterTemplateFunc("date_delta", dateDelta)
+	_ = RegisterTemplateFunc("html_unescaped", HTMLUnescaped)
 }

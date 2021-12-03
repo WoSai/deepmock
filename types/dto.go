@@ -40,11 +40,12 @@ type (
 
 	// TemplateDTO 模板的HTTP报文结构
 	TemplateDTO struct {
-		IsTemplate       bool              `json:"is_template,omitempty"`
-		IsHeaderTemplate bool              `json:"is_header_template,omitempty"`
-		Header           map[string]string `json:"header,omitempty"`
-		StatusCode       int               `json:"status_code,omitempty"`
-		Body             string            `json:"body,omitempty"`
-		B64EncodeBody    string            `json:"base64encoded_body,omitempty"`
+		IsTemplate     bool              `json:"is_template,omitempty"`
+		RenderHeader   bool              `json:"render_header,omitempty"`
+		Header         map[string]string `json:"header,omitempty"`
+		HeaderTemplate string            `json:"header_template,omitempty"`
+		StatusCode     int               `json:"status_code,omitempty"`
+		Body           string            `json:"body,omitempty"`
+		B64EncodeBody  string            `json:"base64encoded_body,omitempty"`
 	}
 )

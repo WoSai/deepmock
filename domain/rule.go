@@ -40,12 +40,13 @@ type (
 
 	// Template 模板值对象
 	Template struct {
-		IsTemplate       bool              `json:"is_template,omitempty"`
-		IsHeaderTemplate bool              `json:"is_header_template,omitempty"`
-		Header           map[string]string `json:"header,omitempty"`
-		StatusCode       int               `json:"status_code,omitempty"`
-		Body             string            `json:"body,omitempty"`
-		B64EncodedBody   string            `json:"b64encoded_body,omitempty"`
+		IsTemplate     bool              `json:"is_template,omitempty"`
+		RenderHeader   bool              `json:"render_header,omitempty"`
+		Header         map[string]string `json:"header,omitempty"`
+		HeaderTemplate string            `json:"header_template,omitempty"`
+		StatusCode     int               `json:"status_code,omitempty"`
+		Body           string            `json:"body,omitempty"`
+		B64EncodedBody string            `json:"b64encoded_body,omitempty"`
 	}
 
 	// WeightFactor 权重因子值对象
@@ -380,9 +381,10 @@ func (bfp BodyFilterParams) To() (*BodyFilterExecutor, error) {
 func (tmp *Template) To() (*TemplateExecutor, error) {
 	te := &TemplateExecutor{
 		IsGolangTemplate: tmp.IsTemplate,
-		IsHeaderTemplate: tmp.IsHeaderTemplate,
+		RenderHeader:     tmp.RenderHeader,
 		IsBinData:        false,
 		template:         nil,
+		headerTemplate:   nil,
 	}
 
 	if tmp.B64EncodedBody != "" {
@@ -409,6 +411,13 @@ func (tmp *Template) To() (*TemplateExecutor, error) {
 			return nil, err
 		}
 		te.template = tmpl
+	}
+	if te.RenderHeader {
+		tmpl, err := template.New(misc.GenRandomString(9)).Funcs(defaultTemplateFuncs).Parse(tmp.HeaderTemplate)
+		if err != nil {
+			return nil, err
+		}
+		te.headerTemplate = tmpl
 	}
 	return te, nil
 }
