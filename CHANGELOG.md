@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2 - 2021-12-03
+
+### Fixed
+
+- 修复Github CI未成功响应push: branch事件的问题
+
 ## 0.6.1 - 2021-12-03
 
 ### Fixed
