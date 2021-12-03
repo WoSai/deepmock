@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 0.6.0 - 2021-11-19
+## 0.6.0 - 2021-12-03
 
 ### Added
 
@@ -9,7 +9,7 @@
 
 ### Changed 
 
-- DTO新增支持字段is_header_template
+- DTO新增支持字段render_header和header_template
 
 ### Fixed
 
