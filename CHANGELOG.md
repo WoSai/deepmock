@@ -10,6 +10,7 @@
 ### Changed 
 
 - DTO新增支持字段render_header和header_template
+- Github Action升级docker/build-push-action@v2
 
 ### Fixed
 
