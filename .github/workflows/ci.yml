@@ -5,7 +5,7 @@ on:
     branches:
       - master
   push:
-    branchs:
+    branches:
       - release/*
       - hotfix/*
       - master
