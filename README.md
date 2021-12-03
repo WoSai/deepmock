@@ -54,7 +54,8 @@ curl -X POST http://127.0.0.1:16600/api/v1/rule \
     * 可以使用内置函数
     * 可以自定义函数
 - 规则中的`Variable`、`Weight`以及请求中的`Header`、`Query`、`Form`、`Json`同样参与Response模板的渲染
-- Response.body中使用template渲染时，需设置`is_template: true`，Response.header中使用template渲染时，需设置`is_header_template: true`
+- Response.body中使用template渲染时，需设置`is_template: true`
+- Response.header可采用Patch形式，使用template渲染部分Header字段，需设置`render_template: true`以及template字符串`header_template`
 
 ### 接口列表：
 
@@ -398,54 +399,53 @@ curl http://127.0.0.1:16600/api/v1/rule/bba079deaa2b97037694a89386616d88
 |`timestamp` | `precision` | `{{timestamp ms}}` | 按指定的精度返回unix时间戳：mcs,ms,sec|
 |`plus`| `v`, `i` | `{{plus v i}}` | 将v的值增加i，实现简单的计算，支持string\int\float类型|
 |`rand_string`| `n` | `{{rand_string n}}`| 生成长度为n的随机字符串 |
+|`html_unescaped`|无|`{{.Variable.str `&#x7c;`html_unescaped}}`| 防止template渲染时，将部分字符进行html编码，如"&" --> "\&amp;" |
  
-#### Response.Header使用Template渲染
+#### Response.Header使用Template渲染示例
 ```json
 {
-    "path": "/redirect/baidu",
-    "method": "get",
-    "variable": {
-        "app_id": "app_id",
-        "code":   "123456"
-	},
-    "responses": [
-        {
-            "is_default": true,
-            "response": {
-                "is_template":false,
-                "is_header_template":true,
-                "header": {
-                    "Content-Type": "text/html",
-                    "User-Agent": "Wechat",
-                    "x-env-flag": "test-111",
-                    "rand-string": "{{rand_string 10}}",
-                    "timestamp-sec": "{{timestamp \"sec\"}}",
-                    "uuid": "{{uuid}}",
-                    "not-exist-func":"{{not_exist_func}}", // not exist func will not be rendered
-                    "location": "{{.Query.redirect_uri}}?state={{.Query.state}}&app_id={{.Variable.app_id}}&code={{.Variable.code}}"
-                },
-                "status_code": 302
-            }
-        }
-    ]
+  "path": "/redirect/baidu",
+  "method": "get",
+  "variable": {
+    "app_id": "app_id",
+    "code": "123456"
+  },
+  "responses": [
+    {
+      "is_default": true,
+      "response": {
+        "is_template": false,
+        "render_header": true,
+        "header": {
+          "Content-Type": "text/html",
+          "User-Agent": "Wechat",
+          "x-env-flag": "test-111",
+          "rand-string": "I'm a {{rand_string}}",
+          "timestamp-sec": "2021-01-01",
+          "uuid": "I'm a {{uuid}}",
+          "location": "https://www.bing.com"
+        },
+        "header_template": "{\"location\": \"{{.Query.redirect_uri | html_unescaped}}&state={{.Query.state}}&app_id={{.Variable.app_id}}&auth_code={{.Variable.code}}\",\"rand-string\":\"{{rand_string 20}}\",\"uuid\":\"{{uuid}}\", \"timestamp-sec\":\"{{timestamp \"sec\"}}\"}",
+        "status_code": 302
+      }
+    }
+  ]
 }
-
 ```
-```typescript
-curl -I --location --request GET 'http://localhost:16600/redirect/baidu?redirect_uri=https%3A%2F%2Fwww.baidu.com&appid=appid&state=true'
+```
+curl -I --location --request GET 'http://localhost:16600/redirect/baidu?redirect_uri=https%3A%2F%2Fwww.baidu.com%3Fref%3Dhello&appid=appid&state=true'
 
 HTTP/1.1 302 Found
 Server: DeepMock Service
-Date: Fri, 19 Nov 2021 02:27:18 GMT
+Date: Fri, 03 Dec 2021 03:49:55 GMT
 Content-Type: text/html
 Content-Length: 0
-Not-Exist-Func: {{not_exist_func}}
-Rand-String: L1cGikKZx3
-Timestamp-Sec: 1637288839
-Uuid: cb871cc9-84d0-4b00-a036-a575ba06889e
+Location: https://www.baidu.com?ref=hello&state=true&app_id=app_id&auth_code=123456
+Rand-String: YHYEglVGzYB8FIIKbify
+Timestamp-Sec: 1638503396
+Uuid: 1cb6c914-04d7-40fe-908f-73d202bb63ea
 X-Env-Flag: test-111
 User-Agent: Wechat
-Location: https://www.baidu.com?state=true&app_id=app_id&code=123456
 ```
 
 ### Benchmark
