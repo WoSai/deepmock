@@ -3,12 +3,12 @@ package domain
 import (
 	"bytes"
 	"fmt"
+	"github.com/stretchr/testify/assert"
+	"github.com/valyala/fasthttp"
+	"github.com/wosai/deepmock/misc"
 	"html/template"
 	"regexp"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/valyala/fasthttp"
 )
 
 func TestHeaderFilter_Filter(t *testing.T) {
@@ -273,4 +273,136 @@ func TestRuleExecutor_Minimal(t *testing.T) {
 
 	_, err := rule.To()
 	assert.NoError(t, err)
+}
+
+func TestHandleHeaderTemplate(t *testing.T) {
+	// 测试遍历header并修改的函数handleHeaderTemplate
+	ctx := &fasthttp.RequestCtx{
+		Request: fasthttp.Request{
+			Header: fasthttp.RequestHeader{},
+		},
+	}
+	ctx.Request.SetBody([]byte("{\"hello\":\"{{.Variable.name}}\", \"country\":\"{{.Query.country}}\",\"body\":\"{{.Form.nickname}}\"}"))
+	ctx.Request.Header.SetRequestURIBytes([]byte("http://localhost:16600/redirect/baidu?redirect_uri=https%3A%2F%2Fwww.baidu.com%3Fx-env-flag%3Dhavok21%26_ref%3Dt&appid=appid&state=true"))
+
+	// 模拟response header
+	te := &TemplateExecutor{}
+	te.header = &fasthttp.ResponseHeader{}
+	te.header.Set("fake", "1")
+	te.header.Set("rand-string", "I'm a {{rand_string}}")
+	te.header.Set("user-agent", "Wechat")
+	te.header.Set("uuid", "I'm a {{uuid}}")
+	te.header.Set("Not-Exist-Func", "{{not_exist_func}}")
+	te.header.Set("location", "https://www.bing.com")
+	str := "{\"location\": \"{{.Query.redirect_uri | html_unescaped}}&state={{.Query.state}}&app_id={{.Variable.app_id}}&auth_code={{.Variable.code}}\"," +
+		"\"rand-string\":\"{{rand_string 20}}\"," +
+		"\"uuid\":\"{{uuid}}\"}"
+	te.headerTemplate, _ = template.New(misc.GenRandomString(9)).Funcs(defaultTemplateFuncs).Parse(str)
+	v := map[string]interface{}{
+		"app_id": "app_id",
+		"code":   "123456",
+	}
+
+	te.header.CopyTo(&ctx.Response.Header)
+	fmt.Println("\n<<<<<<Before render, the response.header is:")
+	fmt.Println(string(ctx.Response.Header.Header()))
+
+	var rc = &RenderContext{}
+	err := te.handleHeaderTemplate(rc, ctx, v, nil)
+	assert.Nil(t, err)
+
+	fmt.Println(">>>>>>After render, the response.header is:")
+	fmt.Println(string(ctx.Response.Header.Header()))
+	assert.Equal(t, string(ctx.Response.Header.Peek("Location")), "https://www.baidu.com?x-env-flag=havok21&_ref=t&state=true&app_id=app_id&auth_code=123456")
+	assert.Equal(t, string(ctx.Response.Header.Peek("not-exist-func")), "{{not_exist_func}}")
+}
+
+func TestHeaderRendering(t *testing.T) {
+	tests := []struct {
+		input, wanted string
+	}{
+		{"http://localhost:16600/redirect?redirect_uri=https%3A%2F%2Fwww.baidu.com%3Fx-env-flag%3Dhavok21%26_ref%3Dt&appid=appid&state=true",
+			"https://www.baidu.com?x-env-flag=havok21&_ref=t&state=true&app_id=app_id&auth_code=123456"}, // normal case
+		{"http://localhost:16600/redirect?redirect_uri=https%3A%2F%2Fwww.baidu.com%26_ref%3D123&appid=appid&state=true",
+			"https://www.baidu.com&_ref=123&state=true&app_id=app_id&auth_code=123456"}, // change _ref
+		{"http://localhost:16600/redirect?redirect_uri=https%3A%2F%2Fwww.baidu.com%26_ref%3D123&appid=appid&state=false",
+			"https://www.baidu.com&_ref=123&state=false&app_id=app_id&auth_code=123456"}, // change state
+		{"http://localhost:16600/redirect?redirect_uri=https%3A%2F%2Fwww.baidu.com%26_ref%3D123&appid=appid",
+			"https://www.baidu.com&_ref=123&state=&app_id=app_id&auth_code=123456"}, // don't have query_string
+		{"http://localhost:16600/redirect",
+			"https://www.bing.com"},
+	}
+
+	for _, test := range tests {
+		RenderHeaderLocation(test.input, test.wanted, t)
+	}
+}
+
+func TestParseString(t *testing.T) {
+	str := "{\"Location\": \"https://www.baidu.com?x-env-flag=havok21&amp;_ref=t&state=true&app_id=app_id&auth_code=123456\"}"
+	headerMap := make(map[string]string)
+
+	err := json.Unmarshal([]byte(str), &headerMap)
+	if err != nil {
+		return
+	}
+	assert.Equal(t, headerMap["Location"], "https://www.baidu.com?x-env-flag=havok21&amp;_ref=t&state=true&app_id=app_id&auth_code=123456")
+}
+
+func TestParseParams(t *testing.T) {
+	ctx := &fasthttp.RequestCtx{
+		Request: fasthttp.Request{
+			Header: fasthttp.RequestHeader{},
+		},
+	}
+
+	ctx.Request.SetBody([]byte("{\"hello\":\"{{.Variable.name}}\", \"country\":\"{{.Query.country}}\",\"body\":\"{{.Form.nickname}}\"}"))
+	ctx.Request.Header.SetRequestURIBytes([]byte("http://localhost:16600/redirect/baidu?redirect_uri=https%3A%2F%2Fwww.baidu.com&appid=appid&state=true"))
+
+	v := map[string]interface{}{
+		"app_id": "app_id",
+		"code":   "123456",
+	}
+	rc := &RenderContext{}
+	rc.parseParams(ctx, v, nil)
+
+	assert.Equal(t, rc.Query["redirect_uri"], "https://www.baidu.com")
+	assert.Equal(t, rc.Query["appid"], "appid")
+	assert.Equal(t, rc.Query["state"], "true")
+	assert.Equal(t, rc.Variable["app_id"], "app_id")
+	assert.Equal(t, rc.Variable["code"], "123456")
+}
+
+func RenderHeaderLocation(input, want string, t *testing.T) {
+	// 根据请求的URI，计算渲染后的Response.Header.Location，然后进行比对
+	ctx := &fasthttp.RequestCtx{
+		Request: fasthttp.Request{
+			Header: fasthttp.RequestHeader{},
+		},
+	}
+	ctx.Request.SetBody([]byte("{\"hello\":\"{{.Variable.name}}\", \"country\":\"{{.Query.country}}\",\"body\":\"{{.Form.nickname}}\"}"))
+	ctx.Request.Header.SetRequestURIBytes([]byte(input))
+
+	// 模拟response header
+	te := &TemplateExecutor{}
+	te.header = &fasthttp.ResponseHeader{}
+	te.header.Set("fake", "1")
+	te.header.Set("user-agent", "Wechat")
+	te.header.Set("location", "https://www.bing.com")
+	str := "{\"location\": \"{{.Query.redirect_uri | html_unescaped}}&state={{.Query.state}}&app_id={{.Variable.app_id}}&auth_code={{.Variable.code}}\"," +
+		"\"rand-string\":\"{{rand_string 20}}\"," +
+		"\"uuid\":\"{{uuid}}\"}"
+	te.headerTemplate, _ = template.New(misc.GenRandomString(9)).Funcs(defaultTemplateFuncs).Parse(str)
+	v := map[string]interface{}{
+		"app_id": "app_id",
+		"code":   "123456",
+	}
+
+	te.header.CopyTo(&ctx.Response.Header)
+
+	var rc = &RenderContext{}
+	err := te.handleHeaderTemplate(rc, ctx, v, nil)
+	fmt.Println(err)
+
+	assert.Equal(t, string(ctx.Response.Header.Peek("location")), want)
 }

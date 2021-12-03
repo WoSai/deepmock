@@ -90,9 +90,12 @@ func convertRegulationDTO(reg *types.RegulationDTO) *domain.Regulation {
 	if reg.Template != nil {
 		r.Template = &domain.Template{
 			IsTemplate:     reg.Template.IsTemplate,
+			RenderHeader:   reg.Template.RenderHeader,
 			Header:         reg.Template.Header,
+			HeaderTemplate: reg.Template.HeaderTemplate,
 			Body:           reg.Template.Body,
 			B64EncodedBody: reg.Template.B64EncodeBody,
+			StatusCode:     reg.Template.StatusCode, // 默认不传，设置为200
 		}
 		if reg.Template.StatusCode == 0 {
 			r.Template.StatusCode = http.StatusOK
@@ -126,11 +129,13 @@ func convertRegulationVO(reg *domain.Regulation) *types.RegulationDTO {
 	r := &types.RegulationDTO{
 		IsDefault: reg.IsDefault,
 		Template: &types.TemplateDTO{
-			IsTemplate:    reg.Template.IsTemplate,
-			Header:        reg.Template.Header,
-			StatusCode:    reg.Template.StatusCode,
-			Body:          reg.Template.Body,
-			B64EncodeBody: reg.Template.B64EncodedBody,
+			IsTemplate:     reg.Template.IsTemplate,
+			RenderHeader:   reg.Template.RenderHeader,
+			Header:         reg.Template.Header,
+			HeaderTemplate: reg.Template.HeaderTemplate,
+			StatusCode:     reg.Template.StatusCode,
+			Body:           reg.Template.Body,
+			B64EncodeBody:  reg.Template.B64EncodedBody,
 		},
 	}
 
