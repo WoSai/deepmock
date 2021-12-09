@@ -15,6 +15,6 @@ WORKDIR /app
 COPY --from=builder /go/src/github.com/wosai/deepmock/deepmock .
 COPY entrypoint.sh /usr/bin/
 
-EXPOSE 16600
+EXPOSE 19900
 ENTRYPOINT ["entrypoint.sh"]
-CMD ["-server-port", ":16600"]
+CMD ["-server-port", ":19900"]
