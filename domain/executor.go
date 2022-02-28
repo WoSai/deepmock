@@ -285,9 +285,7 @@ func (te *TemplateExecutor) Render(ctx *fasthttp.RequestCtx, v map[string]interf
 	}
 
 	// 开始渲染body模板
-	if rc == nil {
-		rc.parseParams(ctx, v, weight)
-	}
+	rc.parseParams(ctx, v, weight)
 	return te.template.Execute(ctx.Response.BodyWriter(), rc)
 }
 
