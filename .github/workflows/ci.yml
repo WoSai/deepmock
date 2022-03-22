@@ -14,6 +14,7 @@ on:
 
 jobs:
   unittest:
+    name: Run Unit TestCase
     strategy:
       fail-fast: true
       matrix:
@@ -38,6 +39,7 @@ jobs:
       run: make bench
   
   code-coverage:
+    name: Publish Code Coverage Report
     runs-on: ubuntu-latest
     needs: unittest
     steps:
@@ -59,7 +61,7 @@ jobs:
   build-docker-image:
     name: Build and Publish Docker Image
     runs-on: ubuntu-latest
-    needs: unittest
+    needs: code-coverage
     steps:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
