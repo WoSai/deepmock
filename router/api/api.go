@@ -3,10 +3,10 @@ package api
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/valyala/fasthttp"
 	"github.com/wosai/deepmock/application"
 	"github.com/wosai/deepmock/misc"
@@ -17,7 +17,6 @@ import (
 var (
 	slash          = []byte(`/`)
 	apiGetRulePath = []byte(`/api/v1/rule`)
-	json           = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 func parsePathVar(path, uri []byte) string {

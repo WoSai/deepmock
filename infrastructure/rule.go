@@ -7,13 +7,9 @@ import (
 
 	"github.com/didi/gendry/builder"
 	"github.com/didi/gendry/scanner"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 	"github.com/wosai/deepmock/domain"
 	"github.com/wosai/deepmock/types"
-)
-
-var (
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 type (

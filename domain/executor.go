@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/google/uuid"
 	"github.com/valyala/fasthttp"
 	"github.com/wosai/deepmock/misc"

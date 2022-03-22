@@ -37,7 +37,9 @@ func (job *Job) WithExecutorRepository(er domain.ExecutorRepository) {
 
 // Do 任务逻辑
 func (job *Job) Do() error {
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	rules, err := job.rule.Export(ctx)
 	if err != nil {
 		return err
