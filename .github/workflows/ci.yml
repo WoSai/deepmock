@@ -35,7 +35,7 @@ jobs:
         name: code-coverage-report
         path: coverage.txt
     - name: Benchmark
-      run: make benchmark
+      run: make bench
   
   code-coverage:
     runs-on: ubuntu-latest
