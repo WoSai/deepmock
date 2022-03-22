@@ -3,12 +3,14 @@ package domain
 import (
 	"bytes"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/valyala/fasthttp"
-	"github.com/wosai/deepmock/misc"
 	"html/template"
 	"regexp"
 	"testing"
+
+	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/assert"
+	"github.com/valyala/fasthttp"
+	"github.com/wosai/deepmock/misc"
 )
 
 func TestHeaderFilter_Filter(t *testing.T) {

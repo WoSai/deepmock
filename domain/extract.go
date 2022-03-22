@@ -3,12 +3,11 @@ package domain
 import (
 	"bytes"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 	"github.com/valyala/fasthttp"
 )
 
 var (
-	json                 = jsoniter.ConfigCompatibleWithStandardLibrary
 	formContentType      = []byte("application/x-www-form-urlencoded")
 	multipartContentType = []byte("multipart/form-data")
 	jsonContentType      = []byte("application/json")

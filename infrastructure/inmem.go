@@ -103,7 +103,7 @@ func (er *ExecutorRepository) ImportAll(_ context.Context, executors ...*domain.
 
 	// toDelete中如果还存在数据，即表示需要删除
 	if len(toDelete) > 0 {
-		for k, _ := range toDelete {
+		for k := range toDelete {
 			misc.Logger.Info("deleted expired rules", zap.String("rule_id", k))
 			delete(er.executors, k)
 		}

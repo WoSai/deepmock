@@ -3,13 +3,11 @@ package misc
 import (
 	"os"
 
-	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 var (
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
 	// Logger DeepMock全局日志对象
 	Logger *zap.Logger
 
