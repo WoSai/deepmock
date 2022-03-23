@@ -69,7 +69,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v3
       with:
-        images: wosai/deepmock
+        images: ghcr.io/wosai/deepmock
         tags: |
           type=ref, event=tag
           type=ref, event=branch
@@ -80,8 +80,9 @@ jobs:
     - name: Login to DockerHub
       uses: docker/login-action@v1
       with:
-        username: ${{ secrets.DOCKERHUB_ORG_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_ORG_ACCESS_TOKEN }}
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     - name: Build and push
       uses: docker/build-push-action@v2
       with:
