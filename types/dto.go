@@ -29,6 +29,7 @@ type (
 		IsDefault bool         `json:"is_default,omitempty"`
 		Filter    *FilterDTO   `json:"filter,omitempty"`
 		Template  *TemplateDTO `json:"response,omitempty"`
+		CallBack  *CallBackDTO `json:"call_back,omitempty"`
 	}
 
 	// FilterDTO 筛选器的HTTP报文结构
@@ -47,5 +48,14 @@ type (
 		StatusCode     int               `json:"status_code,omitempty"`
 		Body           string            `json:"body,omitempty"`
 		B64EncodeBody  string            `json:"base64encoded_body,omitempty"`
+	}
+
+	// CallBackDTO 回调函数报文接口
+	CallBackDTO struct {
+		Method string            `json:"method,omitempty"`
+		URL    string            `json:"url,omitempty"`
+		Query  string            `json:"query,omitempty"`
+		Body   string            `json:"body,omitempty"`
+		Header map[string]string `json:"header,omitempty"`
 	}
 )

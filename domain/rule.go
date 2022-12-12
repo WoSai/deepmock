@@ -29,6 +29,7 @@ type (
 		IsDefault bool      `json:"is_default,omitempty"`
 		Filter    *Filter   `json:"filter,omitempty"`
 		Template  *Template `json:"response,omitempty"`
+		CallBack  *CallBack `json:"call_back,omitempty"`
 	}
 
 	// Filter 筛选规则值对象
@@ -47,6 +48,15 @@ type (
 		StatusCode     int               `json:"status_code,omitempty"`
 		Body           string            `json:"body,omitempty"`
 		B64EncodedBody string            `json:"b64encoded_body,omitempty"`
+	}
+
+	// CallBack 回调函数
+	CallBack struct {
+		Method string            `json:"method,omitempty"`
+		URL    string            `json:"url,omitempty"`
+		Query  string            `json:"query,omitempty"`
+		Body   string            `json:"body,omitempty"`
+		Header map[string]string `json:"header,omitempty"`
 	}
 
 	// WeightFactor 权重因子值对象
@@ -130,6 +140,12 @@ func (r *Regulation) To() (*RegulationExecutor, error) {
 	exec.Template, err = r.Template.To()
 	if err != nil {
 		return nil, err
+	}
+	if r.CallBack != nil {
+		exec.CallBack, err = r.CallBack.To()
+		if err != nil {
+			return nil, err
+		}
 	}
 	return exec, nil
 }
@@ -420,4 +436,16 @@ func (tmp *Template) To() (*TemplateExecutor, error) {
 		te.headerTemplate = tmpl
 	}
 	return te, nil
+}
+
+// To 转换成 CallBackExecutor
+func (cb *CallBack) To() (*CallBackExecutor, error) {
+	ce := &CallBackExecutor{
+		URL:    cb.URL,
+		Method: cb.Method,
+		Header: cb.Header,
+		Query:  cb.Query,
+		Body:   cb.Body,
+	}
+	return ce, nil
 }

@@ -55,7 +55,7 @@ func convertRuleDO(rule *types.RuleDO) (*domain.Rule, error) {
 		Method:  rule.Method,
 		Version: rule.Version,
 	}
-	if rule.Weight != nil {
+	if rule.Weight != nil && len(rule.Weight) != 0 {
 		if err := json.Unmarshal(rule.Weight, &entity.Weight); err != nil {
 			return nil, err
 		}

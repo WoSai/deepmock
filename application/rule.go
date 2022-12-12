@@ -101,6 +101,15 @@ func convertRegulationDTO(reg *types.RegulationDTO) *domain.Regulation {
 			r.Template.StatusCode = http.StatusOK
 		}
 	}
+	if reg.CallBack != nil {
+		r.CallBack = &domain.CallBack{
+			Method: reg.CallBack.Method,
+			URL:    reg.CallBack.URL,
+			Query:  reg.CallBack.Query,
+			Body:   reg.CallBack.Body,
+			Header: reg.CallBack.Header,
+		}
+	}
 	return r
 }
 
@@ -144,6 +153,15 @@ func convertRegulationVO(reg *domain.Regulation) *types.RegulationDTO {
 			Header: reg.Filter.Header,
 			Query:  reg.Filter.Query,
 			Body:   reg.Filter.Body,
+		}
+	}
+	if reg.CallBack != nil {
+		r.CallBack = &types.CallBackDTO{
+			Method: reg.CallBack.Method,
+			URL:    reg.CallBack.URL,
+			Query:  reg.CallBack.Query,
+			Body:   reg.CallBack.Body,
+			Header: reg.CallBack.Header,
 		}
 	}
 	return r
@@ -281,5 +299,6 @@ func (srv *mockApplication) MockAPI(ctx *fasthttp.RequestCtx) error {
 		return ErrRuleNotFound
 	}
 	misc.Logger.Info("found matched rule", zap.Uint64("index", index), zap.String("rule_id", exec.ID))
-	return exec.FindRegulationExecutor(&ctx.Request).Render(ctx, exec.Variable, exec.Weight.DiceAll())
+	// add call back function
+	return exec.FindRegulationExecutor(&ctx.Request).RenderAndCallback(ctx, exec.Variable, exec.Weight.DiceAll())
 }

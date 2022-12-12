@@ -3,10 +3,13 @@ package domain
 import (
 	"bytes"
 	"errors"
+	"go.uber.org/zap"
 	"html/template"
 	"math/rand"
+	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -63,6 +66,7 @@ type (
 		IsDefault bool
 		Filter    *FilterExecutor
 		Template  *TemplateExecutor
+		CallBack  *CallBackExecutor
 	}
 
 	// TemplateExecutor 响应报文模板执行器
@@ -74,6 +78,16 @@ type (
 		headerTemplate   *template.Template
 		header           *fasthttp.ResponseHeader
 		body             []byte
+	}
+
+	// CallBackExecutor 回调函数执行器
+	CallBackExecutor struct {
+		Method string
+		URL    string
+		Query  string
+		Body   string
+		Header map[string]string
+		Client *http.Client
 	}
 
 	// RenderContext 动态渲染的上下文
@@ -312,6 +326,31 @@ func (te *TemplateExecutor) handleHeaderTemplate(rc *RenderContext, ctx *fasthtt
 	return nil
 }
 
+// callBack 回调函数，异步执行（可按指定延迟）
+func (ce *CallBackExecutor) callBack() {
+	// delay 一段时间后, 接口调用, 后期改为可配置
+	time.Sleep(3 * time.Second)
+	req, err := http.NewRequest(strings.ToUpper(ce.Method), ce.URL, bytes.NewBuffer([]byte(ce.Body)))
+	if err != nil {
+		misc.Logger.Error("callback initial failed", zap.Error(err), zap.String("method", req.Method),
+			zap.Any("url", req.URL))
+		return
+	}
+
+	for k, v := range ce.Header {
+		req.Header.Add(k, v)
+	}
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		misc.Logger.Error("callback invoke failed", zap.Error(err))
+		return
+	}
+	misc.Logger.Info("callback invoke success", zap.String("method", req.Method),
+		zap.Any("url", req.URL), zap.String("response status", resp.Status))
+
+}
+
 // parseParams 解析Request中的参数，供template渲染使用
 func (rc *RenderContext) parseParams(ctx *fasthttp.RequestCtx, v map[string]interface{}, weight map[string]string) {
 	h := extractHeaderAsParams(&ctx.Request)
@@ -325,8 +364,11 @@ func (rc *RenderContext) parseParams(ctx *fasthttp.RequestCtx, v map[string]inte
 	rc.Json = j
 }
 
-// Render 渲染函数
-func (re *RegulationExecutor) Render(ctx *fasthttp.RequestCtx, v map[string]interface{}, w map[string]string) error {
+// RenderAndCallback 渲染函数, 并做回调
+func (re *RegulationExecutor) RenderAndCallback(ctx *fasthttp.RequestCtx, v map[string]interface{}, w map[string]string) error {
+	if re.CallBack != nil {
+		go re.CallBack.callBack()
+	}
 	return re.Template.Render(ctx, v, w)
 }
 
