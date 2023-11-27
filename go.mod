@@ -1,6 +1,6 @@
 module github.com/wosai/deepmock
 
-go 1.17
+go 1.21
 
 require (
 	github.com/didi/gendry v1.3.1
