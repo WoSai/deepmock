@@ -1,7 +1,6 @@
-FROM golang:1.17-bullseye as builder
-WORKDIR /go/src/github.com/wosai/deepmock
-COPY . /go/src/github.com/wosai/deepmock
-ENV GO111MODULE on
+FROM golang:1.21-bullseye as builder
+WORKDIR /go/src/
+COPY . /go/src/
 ENV GOPROXY https://goproxy.cn,direct
 RUN set -e \
     && apt update -y \
@@ -12,7 +11,7 @@ RUN set -e \
 
 FROM debian:bullseye
 WORKDIR /app
-COPY --from=builder /go/src/github.com/wosai/deepmock/deepmock .
+COPY --from=builder /go/src/deepmock .
 COPY entrypoint.sh /usr/bin/
 
 EXPOSE 16600
