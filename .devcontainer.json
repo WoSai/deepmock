@@ -1,0 +1,62 @@
+// For format details, see https://aka.ms/vscode-remote/devcontainer.json or this file's README at:
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.163.1/containers/go
+{
+	"name": "Go",
+	"image": "mcr.microsoft.com/devcontainers/go:1-1.21-bookworm",
+	"customizations": {
+		"vscode": {
+			// Set *default* container specific settings.json values on container create.
+			"settings": {
+				"terminal.integrated.defaultProfile.linux": "zsh",
+				"terminal.integrated.defaultProfile.osx": "zsh",
+				"terminal.integrated.defaultProfile.windows": "zsh",
+				"go.toolsManagement.checkForUpdates": "local",
+				"go.gopath": "/go",
+				"go.useLanguageServer": true
+			},
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				"golang.Go",
+				"eamodio.gitlens",
+				"mohsen1.prettify-json",
+				"bierner.markdown-preview-github-styles",
+				"cschleiden.vscode-github-actions",
+				"redhat.vscode-yaml",
+				"carlos-algms.make-task-provider",
+				"k--kato.intellij-idea-keybindings",
+				"donjayamanne.githistory",
+				"github.vscode-pull-request-github",
+				"carlos-algms.make-task-provider",
+                "kennylong.kubernetes-yaml-formatter"
+			]
+		}
+	},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	"forwardPorts": [16600],
+
+	// Use 'portsAttributes' to set default properties for specific forwarded ports. More info: https://code.visualstudio.com/docs/remote/devcontainerjson-reference.
+	"portsAttributes": {
+		"16600": {
+			"label": "HTTP API",
+			"onAutoForward": "openBrowserOnce"
+		}
+	},
+
+	"remoteEnv": {
+		"GOPROXY": "https://goproxy.cn,direct"
+	},
+
+	// Use 'otherPortsAttributes' to configure any ports that aren't configured using 'portsAttributes'.
+	// "otherPortsAttributes": {
+	// 		"onAutoForward": "silent"
+	// },
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "go work sync",
+
+	// Uncomment to connect as a non-root user. More info: https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "vscode"
+	// "workspaceFolder": "/workspace/ultron",
+	// "workspaceMount": "source=/home/admin/workspace/ultron,target=/workspace/ultron,type=bind,consistency=cached"
+}

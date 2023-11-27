@@ -31,5 +31,5 @@ require (
 	go.uber.org/multierr v1.1.0 // indirect
 	google.golang.org/appengine v1.6.2 // indirect
 	gopkg.in/DATA-DOG/go-sqlmock.v1 v1.3.0 // indirect
-	gopkg.in/yaml.v2 v2.2.4 // indirect
+	gopkg.in/yaml.v2 v2.2.8 // indirect
 )
